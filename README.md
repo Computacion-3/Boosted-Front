@@ -16,12 +16,12 @@ Consume la API REST de [Boosted](https://github.com/Computacion-3/Boosted) (Nest
 
 ## Enfoque técnico
 
-- Next.js (App Router) con TypeScript y Tailwind CSS.
+- Next.js (App Router) con TypeScript, Tailwind CSS y daisyUI.
 - Clean Architecture organizada por funcionalidad (`domain`, `infrastructure`, `presentation`).
 - Estado global con Redux Toolkit y hooks fachada.
 - Autenticación con JWT y control de acceso por roles y permisos.
 - Fuente de datos intercambiable entre REST y GraphQL con `NEXT_PUBLIC_DATA_SOURCE`.
-- Pruebas E2E con Cypress; frontend en Vercel y backend en la nube.
+- Pruebas E2E con Playwright; frontend en Vercel y backend en la nube.
 
 Las convenciones de arquitectura y de trabajo del equipo están en [`AGENTS.md`](./AGENTS.md).
 
@@ -35,7 +35,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Necesita la API de Boosted corriendo y `NEXT_PUBLIC_API_URL` apuntando a ella. El detalle de la API está en el README del repositorio [`Boosted`](https://github.com/Computacion-3/Boosted).
+La aplicación queda en `http://localhost:3001`. Necesita la API de Boosted corriendo (por defecto en `http://localhost:3000`) y `API_URL` apuntando a ella en `.env.local`. El detalle de la API está en el README del repositorio [`Boosted`](https://github.com/Computacion-3/Boosted).
 
 ## Autores
 
