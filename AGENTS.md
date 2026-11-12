@@ -37,9 +37,9 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 + daisyUI 5 
 | `npm run lint` | ESLint |
 | `npm run lint:clean` | Linter de Clean Architecture del proyecto (ver abajo) |
 | `npm run arch:inventory` | Inventario de entidades, casos de uso, datasources y slices existentes |
-| `npx tsc --noEmit` | Chequeo de tipos |
+| `npm run typecheck` | Chequeo de tipos. Corre antes `next typegen`: sin eso, en un clon limpio `tsc` falla con `Cannot find name 'LayoutProps'`, porque Next genera ese tipo en `.next/types` |
 
-Los dos últimos scripts viven en `.claude/skills/clean-arch-redux/scripts/`, una carpeta que **no se versiona** (ver «La skill»). Sin esa carpeta, `lint:clean` y `arch:inventory` fallan.
+`lint:clean` y `arch:inventory` viven en `.claude/skills/clean-arch-redux/scripts/`, una carpeta que **no se versiona** (ver «La skill»). Sin esa carpeta, esos dos scripts fallan.
 
 ## Variables de entorno
 
@@ -105,27 +105,28 @@ Flechas permitidas: `presentation → domain`, `presentation/store → presentat
    - Se protege por **permisos** (`recurso:acción`), no por roles. `hasPermission()` de `useAuth` solo muestra u oculta interfaz; ocultar un botón no es proteger.
    - Una página protegida que usa hooks se divide en página de servidor (exige el permiso) + vista de cliente.
 
-Antes de dar una tarea por terminada: `npm run lint:clean`, `npx tsc --noEmit`, `npm run lint` y, si tocaste rutas, `npm run build`.
+Antes de dar una tarea por terminada: `npm run lint:clean`, `npm run typecheck`, `npm run lint` y, si tocaste rutas, `npm run build`.
 
 ## La API (backend Boosted)
 
 - Repo: `Computacion-3/Boosted` (rama `develop`). Swagger en `<API_URL>/api`. Sin prefijo global; CORS abierto.
 - Auth: `POST /auth/register`, `POST /auth/login` → `{ accessToken, user }`; `POST /auth/logout` revoca el token. Rutas protegidas: `Authorization: Bearer <token>`. 401 si el token falta, es inválido, expiró o fue revocado.
-- Roles: `aficionado`, `moderador`, `administrador`. El payload del JWT es hoy `{ sub, email, role }`; el front espera además `name` y `permissions` (los agrega el backend), así que `decodeToken` debe tolerar su ausencia hasta entonces. Un cambio de rol o una desactivación tienen efecto inmediato en el backend.
-- Referencia completa de endpoints, validaciones y matriz de permisos: README del repo `Boosted`, secciones 11 y 13. **No copiar contraseñas ni datos del seed a este repo.**
-- **Estado a 2026-11-11:** la API es solo REST. Todavía **no** tiene GraphQL, WebSockets ni authorities/permisos granulares; el PDF del taller exige las tres cosas. Verifica el estado real del backend antes de asumir que ya existen.
+- Roles: `aficionado`, `moderador`, `administrador`. El payload del JWT es `{ sub, name, email, role, permissions }`; `name` y `permissions` son opcionales en el tipo para tolerar tokens emitidos antes de que existieran. Un cambio de rol, de permisos o una desactivación tienen efecto inmediato en el backend, aunque el token siga vigente.
+- Permisos (`recurso:acción`): `users:read`, `users:update-role`, `users:update-status`, `posts:moderate`, `roles:read` y `roles:update`. Por defecto el aficionado no tiene ninguno, el moderador tiene `posts:moderate` y el administrador tiene todos. Se gestionan con `GET /permissions`, `GET /roles` y `PUT /roles/:role/permissions`. Los del token solo orientan a la interfaz.
+- Eventos: `GET /events` está paginado y responde `{ data, total, page, limit }`, con `page` desde 1 y `limit` de 1 a 50 (por defecto 10).
+- Tiempo real: `POST /auth/socket-ticket` (con Bearer) devuelve `{ ticket, expiresIn: 60 }`, de un solo uso. Se conecta con `io(NEXT_PUBLIC_WS_URL, { auth: { ticket } })` y el servidor emite el evento `notification` al autor de una publicación cuando le dan like o la comentan.
+- Referencia completa de endpoints, validaciones y matriz de permisos: README del repo `Boosted`, secciones 11, 13, 13.9 (roles y permisos) y 13.10 (WebSocket). **No copiar contraseñas ni datos del seed a este repo.**
+- **Estado a 2026-11-12:** el backend ya tiene REST con permisos, eventos paginados y el WebSocket de notificaciones. Todavía **no** tiene GraphQL: se implementa después de verlo en clase. Verifica el estado real del backend antes de asumir que algo existe.
 
 ## Decisiones abiertas del equipo (no asumir en silencio)
 
 Si una tarea depende de una de estas, pregunta al equipo antes de decidir:
 
-- **Tiempo real:** qué funcionalidad se implementa y cómo se autentica el handshake del WebSocket, ya que la cookie httpOnly no es legible desde el navegador (propuesta: un ticket corto que pide una Server Action).
-- **Módulo dual REST/GraphQL:** la propuesta es `events` (por eso `events` se construye con un único puerto de repositorio).
-- **Permisos:** nombres `recurso:acción` y de dónde salen (tablas de roles/permisos en el backend), y que el JWT los lleve en `permissions`.
+- **Módulo dual REST/GraphQL:** el módulo es `events` (por eso se construye con un único puerto de repositorio y un datasource REST). El datasource GraphQL se agrega cuando el backend lo exponga, después de verlo en clase.
 - **Cliente HTTP con Bearer:** cómo los datasources obtienen el token de la sesión en el servidor (propuesta: un cliente en `src/core/http/`, `server-only`).
 - **E2E:** Playwright o Cypress (el PDF dice Cypress; por ahora Playwright).
 
-Ya decididas: sesión en cookie httpOnly con Server Actions (como el curso), UI con Tailwind + daisyUI, y las extensiones del backend viven en el repo `Boosted`.
+Ya decididas: sesión en cookie httpOnly con Server Actions (como el curso), UI con Tailwind + daisyUI, las extensiones del backend viven en el repo `Boosted`, los permisos son `recurso:acción` y viajan en el JWT, y el tiempo real usa un ticket de un solo uso (el socket vive en el navegador, así que su contenedor no es `server-only` y el ticket se pide a un Route Handler same-origin; ver el issue #37).
 
 ## Flujo de trabajo con Git
 
