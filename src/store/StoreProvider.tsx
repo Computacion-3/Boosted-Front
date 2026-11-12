@@ -7,7 +7,7 @@ import { makeStore } from "./store";
 // react-redux usa React Context, que solo funciona en Client Components.
 // Por eso este componente es 'use client' y el layout raíz (Server Component)
 // solo lo monta alrededor de children.
-export default function StoreProvider({
+export function StoreProvider({
   children,
 }: {
   children: React.ReactNode;
