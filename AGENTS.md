@@ -92,7 +92,7 @@ Flechas permitidas: `presentation → domain`, `presentation/store → presentat
 
 1. **Dominio** no importa nada fuera de dominio (salvo `src/core/errors` y `src/core/domain`): sin React, Next, Redux, `fetch`, `window` ni `process.env`. Las entidades validan sus invariantes en el constructor; los casos de uso reciben el repositorio por constructor y exponen un único `execute()`.
 2. **Infraestructura** es la única capa que conoce el formato del cable. Los DTO nunca salen de ella; el mapper es la «aduana» (normaliza enums desconocidos, parsea fechas). El repositorio recibe el datasource **por constructor**.
-3. **Datasources duales:** `RestDatasource` y `GraphQLDatasource` implementan la misma interfaz y devuelven los **mismos DTO**. El contenedor elige uno según `NEXT_PUBLIC_DATA_SOURCE`. Cambiar la variable no puede tocar casos de uso, entidades, slices ni componentes. El cliente WebSocket también vive en `infrastructure/datasources/` detrás de una interfaz.
+3. **Datasources duales:** `RestDatasource` y `GraphQLDatasource` implementan la misma interfaz y devuelven los **mismos DTO**. El contenedor elige uno según `NEXT_PUBLIC_DATA_SOURCE`. Cambiar la variable no puede tocar casos de uso, entidades, slices ni componentes. El cliente WebSocket también vive en `infrastructure/datasources/` detrás de una interfaz. Por eso `apiClient` y `ApiError` (ver «Cliente HTTP») son un detalle de REST: solo los importan los datasources REST. Si un caso de uso, un repositorio o un mapper los importa, el módulo ya no funciona con GraphQL.
 4. **DI:** el contenedor es el único sitio que conoce clases concretas (funcional, sin librería de DI) y exporta casos de uso ya instanciados.
 5. **Thunks y Server Actions.** El thunk llama a una **Server Action** (`presentation/actions/*.actions.ts`, `'use server'`) y esa llama a `<feature>Container.<casoDeUso>.execute()`. Solo las acciones importan `di/`. Las acciones devuelven ViewModels (objetos planos serializables), nunca entidades ni clases; los errores esperados viajan como valor `{ ok: false, message }` y el thunk los convierte en `rejectWithValue`. El estado de Redux guarda ViewModels, no instancias de entidades.
 6. **Componentes** reciben props (ViewModels y callbacks). No importan `react-redux`, el store, slices ni contenedores. Los componentes de React **no acceden al store ni a la red**: usan hooks fachada (`useAuth`, `usePosts`…).
@@ -104,6 +104,26 @@ Flechas permitidas: `presentation → domain`, `presentation/store → presentat
    - **Tres puertas, ninguna sola alcanza:** `proxy.ts` (¿hay sesión?), el DAL en cada página (`requireSession`, `requirePermission`) y **cada Server Action**, que exige sesión y permiso en su primera línea (fuera del `try/catch`: `redirect` lanza una excepción). Una Server Action es un endpoint público.
    - Se protege por **permisos** (`recurso:acción`), no por roles. `hasPermission()` de `useAuth` solo muestra u oculta interfaz; ocultar un botón no es proteger.
    - Una página protegida que usa hooks se divide en página de servidor (exige el permiso) + vista de cliente.
+
+### Cliente HTTP (`src/core/http/`)
+
+Los datasources REST hablan con la API a través de `apiClient` (`src/core/http/api-client.ts`, `server-only`). Lee el JWT de la cookie con `getSession()` y lo manda como `Authorization: Bearer`, así que el token nunca llega al navegador. La URL base sale de `API_URL`, que se lee en cada petición (no al importar el módulo).
+
+```ts
+// ruta pública: no hace falta sesión
+apiClient.get<PaginatedEventsDto>("/events", { auth: "none", query: { page, city } });
+
+// ruta privada (`auth: "required"` es el valor por defecto)
+apiClient.post<VehicleDto>("/vehicles", body);
+
+// pública, pero con sesión se comporta distinto
+apiClient.get<PostDto>(`/posts/${id}`, { auth: "optional" });
+```
+
+- `query` omite los valores `undefined`, `null` y `""`, y repite la clave con los arreglos.
+- Si la respuesta no es 2xx lanza un `ApiError` (`status`, `message` y, cuando aplica, `code`: `unauthenticated`, `timeout` o `network`). El mensaje sale del `message` de la respuesta de Nest (si es un arreglo de validaciones, las une con coma); los de timeout, red y sesión están en español. `auth: "required"` sin sesión lanza un `ApiError` 401 sin hacer la petición.
+- Espera 10 s como máximo. Por defecto usa `cache: "no-store"`: en Next 16 un `fetch` sin esa opción puede ejecutarse al construir.
+- `createApiClient` (`http-client.ts`) no conoce Next ni la sesión, así que se puede probar sin servidor. `api-client.ts` es el único sitio que lo une con `getSession()`.
 
 Antes de dar una tarea por terminada: `npm run lint:clean`, `npm run typecheck`, `npm run lint` y, si tocaste rutas, `npm run build`.
 
@@ -123,10 +143,9 @@ Antes de dar una tarea por terminada: `npm run lint:clean`, `npm run typecheck`,
 Si una tarea depende de una de estas, pregunta al equipo antes de decidir:
 
 - **Módulo dual REST/GraphQL:** el módulo es `events` (por eso se construye con un único puerto de repositorio y un datasource REST). El datasource GraphQL se agrega cuando el backend lo exponga, después de verlo en clase.
-- **Cliente HTTP con Bearer:** cómo los datasources obtienen el token de la sesión en el servidor (propuesta: un cliente en `src/core/http/`, `server-only`).
 - **E2E:** Playwright o Cypress (el PDF dice Cypress; por ahora Playwright).
 
-Ya decididas: sesión en cookie httpOnly con Server Actions (como el curso), UI con Tailwind + daisyUI, las extensiones del backend viven en el repo `Boosted`, los permisos son `recurso:acción` y viajan en el JWT, y el tiempo real usa un ticket de un solo uso (el socket vive en el navegador, así que su contenedor no es `server-only` y el ticket se pide a un Route Handler same-origin; ver el issue #37).
+Ya decididas: sesión en cookie httpOnly con Server Actions (como el curso), UI con Tailwind + daisyUI, las extensiones del backend viven en el repo `Boosted`, los permisos son `recurso:acción` y viajan en el JWT, los datasources REST obtienen el token con `apiClient` (`src/core/http/`), y el tiempo real usa un ticket de un solo uso (el socket vive en el navegador, así que su contenedor no es `server-only` y el ticket se pide a un Route Handler same-origin; ver el issue #37).
 
 ## Flujo de trabajo con Git
 
