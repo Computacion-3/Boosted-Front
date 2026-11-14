@@ -1,4 +1,12 @@
 @import "tailwindcss";
+
+/*
+ * No generar la clase `join` de daisyUI. Tailwind la detecta en cualquier
+ * `array.join(" ")` del código, y su CSS (@scope) hace fallar `next dev` con
+ * Turbopack ("Parsing CSS source code failed"). El build de producción no falla.
+ */
+@source not inline("join");
+
 @plugin "daisyui" {
   themes: light --default;
 }
