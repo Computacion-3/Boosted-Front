@@ -105,6 +105,27 @@ Flechas permitidas: `presentation → domain`, `presentation/store → presentat
    - Se protege por **permisos** (`recurso:acción`), no por roles. `hasPermission()` de `useAuth` solo muestra u oculta interfaz; ocultar un botón no es proteger.
    - Una página protegida que usa hooks se divide en página de servidor (exige el permiso) + vista de cliente.
 
+### Manejo de errores
+
+- **Esperados** (validación, 401, 403, 404, 409): la Server Action los **devuelve**, no los lanza. Usa `ActionResult<T>` de `src/core/errors`: `actionOk(data)` o `toActionError(error)` → `{ ok: false, message, status }`. El thunk revisa `ok` y hace `rejectWithValue(result.message)`.
+- **Inesperados**: el thunk los atrapa con `try/catch` y `rejectWithValue(getErrorMessage(error))`. Si algo revienta al renderizar, lo muestra `app/error.tsx` (o `app/global-error.tsx` si falla el layout raíz). Las rutas inexistentes y `notFound()` muestran `app/not-found.tsx`.
+- `getHttpErrorMessage(status)` traduce el status de la API a español; una pantalla puede cambiar el texto de un status con `overrides` (`{ 409: "Ese usuario ya existe" }`). El `message` técnico de la API nunca se muestra tal cual.
+- Las entidades y los casos de uso lanzan `DomainError` cuando se rompe una regla de negocio; su mensaje sí se muestra tal cual.
+
+```ts
+// presentation/actions/events.actions.ts
+"use server";
+export async function createEventAction(input: CreateEventInput): Promise<ActionResult<EventViewModel>> {
+  await requireSession(); // fuera del try/catch: redirect() lanza
+  try {
+    const event = await eventsContainer.createEvent.execute(input);
+    return actionOk(EventViewModelMapper.toViewModel(event));
+  } catch (error) {
+    return toActionError(error, { 403: "Solo el creador o un moderador puede editar este evento" });
+  }
+}
+```
+
 Antes de dar una tarea por terminada: `npm run lint:clean`, `npm run typecheck`, `npm run lint` y, si tocaste rutas, `npm run build`.
 
 ## La API (backend Boosted)
