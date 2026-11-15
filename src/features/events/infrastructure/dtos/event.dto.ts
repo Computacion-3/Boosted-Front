@@ -34,3 +34,25 @@ export interface EventQueryDto {
   startDate?: string;
   endDate?: string;
 }
+
+/** Body de POST /events. El creador no se manda: el backend lo toma del token. */
+export interface CreateEventDto {
+  name: string;
+  description?: string;
+  city: string;
+  date: string;
+  location?: string;
+  organizer: string;
+  type: string;
+}
+
+/** Body de PATCH /events/:id. `null` borra un campo opcional. */
+export interface UpdateEventDto {
+  name?: string;
+  description?: string | null;
+  city?: string;
+  date?: string;
+  location?: string | null;
+  organizer?: string;
+  type?: string;
+}
