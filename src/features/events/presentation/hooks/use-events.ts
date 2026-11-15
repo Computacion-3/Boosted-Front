@@ -3,7 +3,16 @@
 import { useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
 import type { EventFilters } from "../../domain/repositories/event.repository";
-import { fetchEventById, fetchEvents } from "../store/events.slice";
+import {
+  clearMutationError,
+  createEventMutation,
+  deleteEventMutation,
+  fetchEventById,
+  fetchEvents,
+  updateEventMutation,
+} from "../store/events.slice";
+import type { EventFormValues } from "../viewmodels/event-form.viewmodel";
+import type { EventViewModel } from "../viewmodels/event.viewmodel";
 
 /**
  * Hook fachada del listado de eventos. Los componentes no ven Redux: reciben
@@ -80,4 +89,43 @@ export function useEventDetail(id: string) {
     errorMessage,
     reload,
   };
+}
+
+/**
+ * Hook fachada para crear, editar y eliminar eventos. Cada función devuelve si
+ * salió bien, así la pantalla decide si navega o muestra el error.
+ */
+export function useEventMutations() {
+  const dispatch = useAppDispatch();
+  const { isSaving, errorMessage } = useAppSelector((state) => state.events.mutation);
+
+  const createEvent = useCallback(
+    async (values: EventFormValues): Promise<EventViewModel | null> => {
+      const result = await dispatch(createEventMutation(values));
+      return createEventMutation.fulfilled.match(result) ? result.payload : null;
+    },
+    [dispatch],
+  );
+
+  const updateEvent = useCallback(
+    async (id: string, values: EventFormValues): Promise<boolean> => {
+      const result = await dispatch(updateEventMutation({ id, values }));
+      return updateEventMutation.fulfilled.match(result);
+    },
+    [dispatch],
+  );
+
+  const deleteEvent = useCallback(
+    async (id: string): Promise<boolean> => {
+      const result = await dispatch(deleteEventMutation(id));
+      return deleteEventMutation.fulfilled.match(result);
+    },
+    [dispatch],
+  );
+
+  const clearError = useCallback(() => {
+    dispatch(clearMutationError());
+  }, [dispatch]);
+
+  return { createEvent, updateEvent, deleteEvent, isSaving, errorMessage, clearError };
 }
