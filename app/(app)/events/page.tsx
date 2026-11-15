@@ -5,7 +5,8 @@ import { EventsView } from "./events-view";
 export const metadata: Metadata = { title: "Eventos | Boosted" };
 
 /** Página de servidor: exige sesión y deja el resto a la vista de cliente. */
-export default async function EventsPage() {
+export default async function EventsPage({ searchParams }: PageProps<"/events">) {
   await requireSession();
-  return <EventsView />;
+  const { aviso } = await searchParams;
+  return <EventsView notice={typeof aviso === "string" ? aviso : undefined} />;
 }
