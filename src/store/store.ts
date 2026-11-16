@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import { eventsReducer } from "@/src/features/events/presentation/store/events.slice";
 
 /**
  * Crea un store nuevo. Es una fábrica y no un singleton porque en Next.js el
@@ -21,13 +22,12 @@ import { configureStore } from "@reduxjs/toolkit";
  *      queda tipado.
  *
  * src/store solo cablea los reducers; la lógica de cada slice vive en su feature.
- *
- * Mientras `reducer` esté vacío, Redux avisa en consola en desarrollo «Store does
- * not have a valid reducer». Es esperado y desaparece al registrar el primer slice.
  */
 export const makeStore = () =>
   configureStore({
-    reducer: {},
+    reducer: {
+      events: eventsReducer,
+    },
   });
 
 export type AppStore = ReturnType<typeof makeStore>;
