@@ -2,6 +2,7 @@ import "server-only";
 import { GetEventByIdUseCase } from "../domain/usecases/get-event-by-id.usecase";
 import { GetEventsUseCase } from "../domain/usecases/get-events.usecase";
 import type { EventDatasource } from "../infrastructure/datasources/event-datasource.interface";
+import { EventGraphQLDatasource } from "../infrastructure/datasources/event-graphql-datasource";
 import { EventRestDatasource } from "../infrastructure/datasources/event-rest-datasource";
 import { EventRepositoryImpl } from "../infrastructure/repositories/event.repository.impl";
 
@@ -16,10 +17,11 @@ function createEventDatasource(): EventDatasource {
   switch (source) {
     case "rest":
       return new EventRestDatasource();
+    case "graphql":
+      return new EventGraphQLDatasource();
     default:
-      // "graphql" llega cuando el backend exponga eventos por GraphQL.
       throw new Error(
-        `NEXT_PUBLIC_DATA_SOURCE="${source}" todavía no está soportado en eventos. Usa "rest".`,
+        `NEXT_PUBLIC_DATA_SOURCE="${source}" no es válido en eventos. Usa "rest" o "graphql".`,
       );
   }
 }
