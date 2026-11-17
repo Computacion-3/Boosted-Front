@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import { authReducer } from "@/src/features/auth/presentation/store/auth.slice";
 import { eventsReducer } from "@/src/features/events/presentation/store/events.slice";
 
 /**
@@ -26,6 +27,7 @@ import { eventsReducer } from "@/src/features/events/presentation/store/events.s
 export const makeStore = () =>
   configureStore({
     reducer: {
+      auth: authReducer,
       events: eventsReducer,
     },
   });
