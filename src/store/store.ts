@@ -1,35 +1,49 @@
-import { configureStore } from "@reduxjs/toolkit";
-import { authReducer } from "@/src/features/auth/presentation/store/auth.slice";
+import { combineReducers, configureStore, type UnknownAction } from "@reduxjs/toolkit";
+import { authReducer, logout } from "@/src/features/auth/presentation/store/auth.slice";
 import { eventsReducer } from "@/src/features/events/presentation/store/events.slice";
+
+/**
+ * Cómo registrar el reducer de una feature:
+ *   1. El slice vive en su feature: src/features/<f>/presentation/store/<f>.slice.ts
+ *      y exporta su reducer (por ejemplo, `export const authReducer = authSlice.reducer`).
+ *   2. Se importa aquí y se agrega a `appReducer` con el nombre de la feature:
+ *
+ *        const appReducer = combineReducers({
+ *          auth: authReducer,
+ *          posts: postsReducer,
+ *        });
+ *
+ *   3. RootState se actualiza solo: `useAppSelector((state) => state.posts)` ya
+ *      queda tipado.
+ *
+ * src/store solo cablea los reducers; la lógica de cada slice vive en su feature.
+ */
+const appReducer = combineReducers({
+  auth: authReducer,
+  events: eventsReducer,
+});
+
+/**
+ * Al cerrar sesión se vacía TODO el store, no solo `auth`: así no quedan en
+ * memoria los datos de la persona anterior (sus vehículos, publicaciones…).
+ * Pasarle `undefined` a cada reducer lo devuelve a su estado inicial.
+ */
+const rootReducer = (state: ReturnType<typeof appReducer> | undefined, action: UnknownAction) => {
+  if (logout.fulfilled.match(action)) {
+    return appReducer(undefined, action);
+  }
+  return appReducer(state, action);
+};
 
 /**
  * Crea un store nuevo. Es una fábrica y no un singleton porque en Next.js el
  * mismo módulo se reutiliza entre peticiones del servidor: un store global
  * mezclaría el estado de usuarios distintos. StoreProvider la llama una sola
  * vez por pestaña del navegador.
- *
- * Cómo registrar el reducer de una feature:
- *   1. El slice vive en su feature: src/features/<f>/presentation/store/<f>.slice.ts
- *      y exporta su reducer (por ejemplo, `export const authReducer = authSlice.reducer`).
- *   2. Se importa aquí y se agrega a `reducer` con el nombre de la feature:
- *
- *        import { authReducer } from "@/src/features/auth/presentation/store/auth.slice";
- *
- *        reducer: {
- *          auth: authReducer,
- *        },
- *
- *   3. RootState se actualiza solo: `useAppSelector((state) => state.auth)` ya
- *      queda tipado.
- *
- * src/store solo cablea los reducers; la lógica de cada slice vive en su feature.
  */
 export const makeStore = () =>
   configureStore({
-    reducer: {
-      auth: authReducer,
-      events: eventsReducer,
-    },
+    reducer: rootReducer,
   });
 
 export type AppStore = ReturnType<typeof makeStore>;
