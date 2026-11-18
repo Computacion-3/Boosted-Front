@@ -3,7 +3,12 @@
 import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
 import type { LoginFormValues } from "../schemas/login.schema";
-import { clearAuthError, login as loginThunk, setUser } from "../store/auth.slice";
+import {
+  clearAuthError,
+  login as loginThunk,
+  logout as logoutThunk,
+  setUser,
+} from "../store/auth.slice";
 import type { AuthUserViewModel } from "../viewmodels/auth-user.viewmodel";
 
 /**
@@ -25,6 +30,11 @@ export function useAuth() {
     },
     [dispatch],
   );
+
+  /** Revoca el token, borra la cookie y vacía todo el store. Quien llama decide a dónde navegar. */
+  const logout = useCallback(async (): Promise<void> => {
+    await dispatch(logoutThunk());
+  }, [dispatch]);
 
   /** Lo usa AuthHydrator para cargar en Redux la sesión que leyó el servidor. */
   const hydrate = useCallback(
@@ -53,6 +63,7 @@ export function useAuth() {
     isLoading: status === "loading",
     errorMessage,
     login,
+    logout,
     hydrate,
     clearError,
     hasRole,

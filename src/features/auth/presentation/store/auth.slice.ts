@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { getErrorMessage } from "@/src/core/errors";
-import { loginAction } from "../actions/auth.actions";
+import { loginAction, logoutAction } from "../actions/auth.actions";
 import type { LoginFormValues } from "../schemas/login.schema";
 import type { AuthUserViewModel } from "../viewmodels/auth-user.viewmodel";
 
@@ -38,6 +38,14 @@ export const login = createAppThunk(
     }
   },
 );
+
+/**
+ * Cierra sesión. No hace falta un caso `fulfilled` en este slice: src/store/store.ts
+ * escucha `auth/logout/fulfilled` y devuelve TODO el store a su estado inicial.
+ */
+export const logout = createAppThunk("auth/logout", async () => {
+  await logoutAction();
+});
 
 export const authSlice = createSlice({
   name: "auth",
