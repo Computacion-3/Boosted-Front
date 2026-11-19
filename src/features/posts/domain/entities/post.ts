@@ -132,4 +132,9 @@ export class Post {
   isAuthoredBy(userId: string | null): boolean {
     return userId !== null && userId === this.authorId;
   }
+
+  /** true si `userId` ya le dio like. Sin sesión (null) nunca lo dio. */
+  isLikedBy(userId: string | null): boolean {
+    return userId !== null && this.likedBy.includes(userId);
+  }
 }
