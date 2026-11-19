@@ -24,7 +24,8 @@ Frontend de **BOOSTED**, una plataforma para aficionados a los carros: garaje di
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 + daisyUI 5 · Redux Toolkit + react-redux · `jwt-decode`, `zod` y `server-only` para la sesión. Es la misma base que la solución de referencia del curso (repo `Kelocoes/compunet3-202602`, rama `week-15/next-testing-deploy`).
 
 - **E2E:** Playwright por ahora, como en el curso. El PDF del taller menciona Cypress; pendiente de confirmar con el profe.
-- **Pendiente de añadir:** cliente WebSocket. El cliente GraphQL ya existe en `src/core/graphql/`.
+- **WebSocket:** `socket.io-client`, en `src/features/notifications/`.
+- **GraphQL:** cliente en `src/core/graphql/` (la contraparte de `src/core/http/` para el datasource GraphQL de `events`).
 - **Alias de imports:** `@/*` → `./*` (los imports son `@/src/...`). `app/` y `proxy.ts` van en la **raíz** del repo; todo lo demás, en `src/`.
 - **No activar** `cacheComponents` en `next.config.ts`: la sesión lee cookies en el servidor y el curso no lo usa.
 
@@ -97,7 +98,7 @@ Flechas permitidas: `presentation → domain`, `presentation/store → presentat
 5. **Thunks y Server Actions.** El thunk llama a una **Server Action** (`presentation/actions/*.actions.ts`, `'use server'`) y esa llama a `<feature>Container.<casoDeUso>.execute()`. Solo las acciones importan `di/`. Las acciones devuelven ViewModels (objetos planos serializables), nunca entidades ni clases; los errores esperados viajan como valor `{ ok: false, message }` y el thunk los convierte en `rejectWithValue`. El estado de Redux guarda ViewModels, no instancias de entidades.
 6. **Componentes** reciben props (ViewModels y callbacks). No importan `react-redux`, el store, slices ni contenedores. Los componentes de React **no acceden al store ni a la red**: usan hooks fachada (`useAuth`, `usePosts`…).
 7. **`app/`:** las páginas son delgadas, consumen hooks fachada y componentes. `layout.tsx` sigue siendo Server Component y monta `<StoreProvider>`. El store se crea con `makeStore()` + `useState(makeStore)`.
-8. Los eventos entrantes del WebSocket se despachan directamente al store de Redux, sin recargar la página. La conexión envía el JWT en el handshake.
+8. Los eventos entrantes del WebSocket se despachan directamente al store de Redux, sin recargar la página. El handshake no lleva el JWT sino un **ticket de un solo uso**: el navegador lo pide con `POST /api/realtime/ticket` (`app/api/realtime/ticket/route.ts`, que lee la cookie y llama a la API) y cada intento de conexión pide uno nuevo. La política de reconexión vive solo en el datasource de socket.io: espera creciente (1 s hasta 30 s) y sin reintentos si la sesión terminó (401) o la cuenta no está disponible.
 9. **Sesión (cookie httpOnly, como en el curso):**
    - El JWT lo emite el backend. Una Server Action (`loginAction`) lo guarda en una cookie `httpOnly` (`secure` solo en producción, `sameSite: 'lax'`); JavaScript del navegador no la puede leer. El front solo **decodifica** el token (`jwt-decode`) para la interfaz; **la firma la verifica el backend** y lo que el front lee nunca protege datos.
    - `src/lib/token.ts` (puro), `src/lib/session.ts` y `src/lib/dal.ts` (`import 'server-only'`) son los únicos que tocan la cookie.

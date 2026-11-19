@@ -1,5 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
+import { authReducer } from "@/src/features/auth/presentation/store/auth.slice";
 import { eventsReducer } from "@/src/features/events/presentation/store/events.slice";
+import { postsReducer } from "@/src/features/posts/presentation/store/posts.slice";
 
 /**
  * Crea un store nuevo. Es una fábrica y no un singleton porque en Next.js el
@@ -26,7 +28,9 @@ import { eventsReducer } from "@/src/features/events/presentation/store/events.s
 export const makeStore = () =>
   configureStore({
     reducer: {
+      auth: authReducer,
       events: eventsReducer,
+      posts: postsReducer,
     },
   });
 

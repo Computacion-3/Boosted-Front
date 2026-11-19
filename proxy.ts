@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { HOME_ROUTE, LOGIN_ROUTE } from "@/src/lib/routes";
 import { decodeToken, SESSION_COOKIE } from "@/src/lib/token";
 
 /**
@@ -14,10 +15,8 @@ import { decodeToken, SESSION_COOKIE } from "@/src/lib/token";
 const publicRoutes = ["/"];
 
 // Rutas solo para quien NO tiene sesión: si ya inició sesión, se le saca de aquí.
-const authRoutes = ["/login", "/register"];
-
-// A dónde va quien ya tiene sesión e intenta entrar a /login o /register.
-const HOME_ROUTE = "/";
+// Quien ya tiene sesión y entra aquí va a HOME_ROUTE (ver src/lib/routes.ts).
+const authRoutes = [LOGIN_ROUTE, "/register"];
 
 export function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
@@ -31,7 +30,7 @@ export function proxy(req: NextRequest) {
   }
 
   if (!isPublic && !isAuthRoute && !payload) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl));
+    return NextResponse.redirect(new URL(LOGIN_ROUTE, req.nextUrl));
   }
 
   return NextResponse.next();
