@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import Link from "next/link";
 import { ErrorBanner, Pagination, ToastContainer } from "@/src/core/components/ui";
-import { useToast } from "@/src/core/hooks/use-toast";
 import { PostFiltersBar } from "@/src/features/posts/presentation/components/PostFiltersBar";
 import { PostList } from "@/src/features/posts/presentation/components/PostList";
 import { PostResultsSummary } from "@/src/features/posts/presentation/components/PostResultsSummary";
 import { usePosts } from "@/src/features/posts/presentation/hooks/use-posts";
+import { usePostsToast } from "@/src/features/posts/presentation/hooks/use-posts-toast";
 
 export function PostsView() {
   const {
@@ -25,17 +25,8 @@ export function PostsView() {
     reload,
     likingIds,
     toggleLike,
-    feedback,
-    dismissFeedback,
   } = usePosts();
-  const { toasts, showToast, dismissToast } = useToast();
-
-  // El mensaje de Redux es de un solo uso: se muestra como toast y se descarta del estado.
-  useEffect(() => {
-    if (!feedback) return;
-    showToast(feedback.message, feedback.tone);
-    dismissFeedback();
-  }, [feedback, showToast, dismissFeedback]);
+  const { toasts, dismissToast } = usePostsToast("feed");
 
   // La paginación está al final de la lista: al cambiar de página se vuelve arriba.
   const handlePageChange = (next: number) => {
@@ -45,9 +36,14 @@ export function PostsView() {
 
   return (
     <section className="flex flex-col gap-4">
-      <header>
-        <h1 className="text-2xl font-bold md:text-3xl">Comunidad</h1>
-        <p className="text-base-content/70">Avances, dudas y recomendaciones de otros aficionados.</p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold md:text-3xl">Comunidad</h1>
+          <p className="text-base-content/70">Avances, dudas y recomendaciones de otros aficionados.</p>
+        </div>
+        <Link href="/posts/new" className="btn btn-primary btn-sm self-start whitespace-nowrap">
+          Nueva publicación
+        </Link>
       </header>
 
       <PostFiltersBar value={filters} onChange={applyFilters} />
