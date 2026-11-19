@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ErrorBanner, ToastContainer } from "@/src/core/components/ui";
+import { CommentForm } from "@/src/features/comments/presentation/components/CommentForm";
+import { CommentList } from "@/src/features/comments/presentation/components/CommentList";
+import { useComments } from "@/src/features/comments/presentation/hooks/use-comments";
 import { DeletePostModal } from "@/src/features/posts/presentation/components/DeletePostModal";
 import { PostDetail } from "@/src/features/posts/presentation/components/PostDetail";
 import { usePostDetail } from "@/src/features/posts/presentation/hooks/use-post-detail";
@@ -43,6 +46,43 @@ function PostDetailSkeleton() {
   );
 }
 
+/** Comentarios de la publicación: se monta solo cuando la publicación ya cargó. */
+function CommentsSection({ postId }: { postId: string }) {
+  const {
+    comments,
+    count,
+    isLoading,
+    errorMessage,
+    isAdding,
+    addError,
+    busyIds,
+    itemErrors,
+    add,
+    update,
+    remove,
+    reload,
+  } = useComments(postId);
+
+  return (
+    <section aria-labelledby="comments-heading" className="flex flex-col gap-4">
+      <h2 id="comments-heading" className="text-lg font-semibold">
+        {isLoading || errorMessage ? "Comentarios" : `Comentarios (${count})`}
+      </h2>
+      <CommentForm isSubmitting={isAdding} errorMessage={addError} onSubmit={add} />
+      <CommentList
+        comments={comments}
+        isLoading={isLoading}
+        errorMessage={errorMessage}
+        busyIds={busyIds}
+        itemErrors={itemErrors}
+        onUpdate={update}
+        onDelete={remove}
+        onRetry={reload}
+      />
+    </section>
+  );
+}
+
 export function PostDetailView({ id }: { id: string }) {
   const router = useRouter();
   const { post, isLoading, errorMessage, isLiking, toggleLike, reload } = usePostDetail(id);
@@ -78,6 +118,7 @@ export function PostDetailView({ id }: { id: string }) {
             onConfirm={handleConfirmDelete}
             onClose={() => setIsDeleteOpen(false)}
           />
+          <CommentsSection postId={post.id} />
         </>
       ) : errorMessage ? (
         <ErrorBanner message={errorMessage} onRetry={reload} />
