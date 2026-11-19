@@ -25,6 +25,22 @@ export interface PostViewModel {
   readonly likesLabel: string;
   /** Solo en publicaciones de tipo evento: "Cali · Autódromo · 18 de octubre de 2026". */
   readonly eventSummary: string | null;
+  /** El contenido completo (la tarjeta sigue usando `excerpt`). */
+  readonly content: string;
+  /** Detalles de la pregunta; null si no aplica. */
+  readonly questionDetails: string | null;
+  /** Fecha del evento tal como viene (valor crudo, para el formulario de edición). */
+  readonly eventDate: string | null;
+  /** Ciudad del evento (valor crudo, para el formulario de edición). */
+  readonly eventCity: string | null;
+  /** Lugar del evento (valor crudo, para el formulario de edición). */
+  readonly eventLocation: string | null;
+  /** true si la publicación está oculta por moderación. */
+  readonly isHidden: boolean;
+  /** Quién puede editar o eliminar: el autor o un moderador (la API igual responde 403 si no). */
+  readonly canManage: boolean;
+  /** true si quien mira puede moderar publicaciones. */
+  readonly canModerate: boolean;
 }
 
 export interface PaginatedPostsViewModel {
@@ -126,6 +142,8 @@ function buildEventSummary(post: Post): string | null {
 export interface PostViewModelContext {
   /** Quién mira (null sin sesión). */
   viewerId: string | null;
+  /** true si quien mira tiene el permiso de moderar publicaciones. */
+  canModerate: boolean;
 }
 
 export class PostViewModelMapper {
@@ -148,6 +166,14 @@ export class PostViewModelMapper {
       createdAtIso: post.createdAt.toISOString(),
       likesLabel: formatLikesLabel(post.likeCount),
       eventSummary: buildEventSummary(post),
+      content: post.content,
+      questionDetails: post.questionDetails,
+      eventDate: post.eventDate,
+      eventCity: post.eventCity,
+      eventLocation: post.eventLocation,
+      isHidden: post.hidden,
+      canManage: isMine || context.canModerate,
+      canModerate: context.canModerate,
     };
   }
 }
