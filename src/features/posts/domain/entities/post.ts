@@ -52,6 +52,12 @@ export interface PostProps {
   updatedAt: Date;
 }
 
+/** Quien intenta leer una publicación: su id (null sin sesión) y si puede moderar. */
+export interface PostViewer {
+  userId: string | null;
+  canModerate: boolean;
+}
+
 /** Una publicación de la comunidad (avance, pregunta, evento…). */
 export class Post {
   readonly id: string;
@@ -126,6 +132,14 @@ export class Post {
   /** Las publicaciones ocultas por moderación no se muestran en el feed. */
   isVisible(): boolean {
     return !this.hidden;
+  }
+
+  /**
+   * Una publicación oculta solo la puede leer su autor o quien modera.
+   * Las demás personas (y quien no tiene sesión) solo ven las no ocultas.
+   */
+  isVisibleTo(viewer: PostViewer): boolean {
+    return !this.hidden || this.isAuthoredBy(viewer.userId) || viewer.canModerate;
   }
 
   /** true si `userId` es quien la escribió. Sin sesión (null) nunca es el autor. */
