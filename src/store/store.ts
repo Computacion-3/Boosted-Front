@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import { commentsReducer } from "@/src/features/comments/presentation/store/comments.slice";
 import { eventsReducer } from "@/src/features/events/presentation/store/events.slice";
 import { postsReducer } from "@/src/features/posts/presentation/store/posts.slice";
 
@@ -27,6 +28,7 @@ import { postsReducer } from "@/src/features/posts/presentation/store/posts.slic
 export const makeStore = () =>
   configureStore({
     reducer: {
+      comments: commentsReducer,
       events: eventsReducer,
       posts: postsReducer,
     },
