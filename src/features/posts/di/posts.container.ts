@@ -3,6 +3,8 @@ import { CreatePostUseCase } from "../domain/usecases/create-post.usecase";
 import { DeletePostUseCase } from "../domain/usecases/delete-post.usecase";
 import { GetPostByIdUseCase } from "../domain/usecases/get-post-by-id.usecase";
 import { GetPostsUseCase } from "../domain/usecases/get-posts.usecase";
+import { HidePostUseCase } from "../domain/usecases/hide-post.usecase";
+import { RestorePostUseCase } from "../domain/usecases/restore-post.usecase";
 import { TogglePostLikeUseCase } from "../domain/usecases/toggle-post-like.usecase";
 import { UpdatePostUseCase } from "../domain/usecases/update-post.usecase";
 import type { PostDatasource } from "../infrastructure/datasources/post-datasource.interface";
@@ -39,6 +41,8 @@ export const postsContainer = {
   createPost: new CreatePostUseCase(repository),
   updatePost: new UpdatePostUseCase(repository),
   deletePost: new DeletePostUseCase(repository),
+  hidePost: new HidePostUseCase(repository),
+  restorePost: new RestorePostUseCase(repository),
 };
 
 export type PostsContainer = typeof postsContainer;
