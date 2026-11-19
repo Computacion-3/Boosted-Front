@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { PostViewModel } from "../viewmodels/post.viewmodel";
 import { LikeButton } from "./LikeButton";
 
@@ -26,7 +27,11 @@ export function PostCard({
           </time>
         </div>
 
-        <h2 className="card-title text-lg leading-snug text-pretty break-words">{post.title}</h2>
+        <h2 className="card-title text-lg leading-snug text-pretty break-words">
+          <Link href={`/posts/${post.id}`} className="hover:underline focus-visible:underline">
+            {post.title}
+          </Link>
+        </h2>
 
         {post.eventSummary && <p className="text-sm font-medium break-words">{post.eventSummary}</p>}
 
