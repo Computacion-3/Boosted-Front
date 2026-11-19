@@ -15,4 +15,8 @@ export class PostRepositoryImpl implements PostRepository {
     const dto = await this.datasource.getPosts(PostMapper.toQueryDto(query));
     return PostMapper.toPaginatedDomain(dto);
   }
+
+  async toggleLike(id: string): Promise<Post> {
+    return PostMapper.toDomain(await this.datasource.toggleLike(id));
+  }
 }
