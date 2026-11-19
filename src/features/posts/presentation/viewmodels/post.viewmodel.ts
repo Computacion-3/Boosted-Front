@@ -15,6 +15,8 @@ export interface PostViewModel {
   readonly isMine: boolean;
   readonly vehicleId: string | null;
   readonly likeCount: number;
+  /** true si quien mira ya dio like a la publicación. */
+  readonly likedByMe: boolean;
   /** "17 nov 2026" */
   readonly formattedDate: string;
   /** ISO 8601, para el atributo `dateTime` de la etiqueta <time>. */
@@ -79,6 +81,11 @@ const longDateFormatter = new Intl.DateTimeFormat("es-CO", {
 
 const numberFormatter = new Intl.NumberFormat("es-CO");
 
+/** "1.234 me gusta". También la usa el slice para refrescar la etiqueta tras una actualización optimista. */
+export function formatLikesLabel(count: number): string {
+  return `${numberFormatter.format(count)} me gusta`;
+}
+
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /** "17 nov 2026": el formateador de es-CO agrega «de» entre las partes, aquí se arma a mano. */
@@ -136,9 +143,10 @@ export class PostViewModelMapper {
       isMine,
       vehicleId: post.vehicleId,
       likeCount: post.likeCount,
+      likedByMe: post.isLikedBy(context.viewerId),
       formattedDate: formatShortDate(post.createdAt),
       createdAtIso: post.createdAt.toISOString(),
-      likesLabel: `${numberFormatter.format(post.likeCount)} me gusta`,
+      likesLabel: formatLikesLabel(post.likeCount),
       eventSummary: buildEventSummary(post),
     };
   }
