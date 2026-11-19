@@ -24,7 +24,8 @@ Frontend de **BOOSTED**, una plataforma para aficionados a los carros: garaje di
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 + daisyUI 5 · Redux Toolkit + react-redux · `jwt-decode`, `zod` y `server-only` para la sesión. Es la misma base que la solución de referencia del curso (repo `Kelocoes/compunet3-202602`, rama `week-15/next-testing-deploy`).
 
 - **E2E:** Playwright por ahora, como en el curso. El PDF del taller menciona Cypress; pendiente de confirmar con el profe.
-- **WebSocket:** `socket.io-client`, en `src/features/notifications/`. **Pendiente de añadir:** cliente GraphQL.
+- **WebSocket:** `socket.io-client`, en `src/features/notifications/`.
+- **GraphQL:** cliente en `src/core/graphql/` (la contraparte de `src/core/http/` para el datasource GraphQL de `events`).
 - **Alias de imports:** `@/*` → `./*` (los imports son `@/src/...`). `app/` y `proxy.ts` van en la **raíz** del repo; todo lo demás, en `src/`.
 - **No activar** `cacheComponents` en `next.config.ts`: la sesión lee cookies en el servidor y el curso no lo usa.
 
@@ -92,7 +93,7 @@ Flechas permitidas: `presentation → domain`, `presentation/store → presentat
 
 1. **Dominio** no importa nada fuera de dominio (salvo `src/core/errors` y `src/core/domain`): sin React, Next, Redux, `fetch`, `window` ni `process.env`. Las entidades validan sus invariantes en el constructor; los casos de uso reciben el repositorio por constructor y exponen un único `execute()`.
 2. **Infraestructura** es la única capa que conoce el formato del cable. Los DTO nunca salen de ella; el mapper es la «aduana» (normaliza enums desconocidos, parsea fechas). El repositorio recibe el datasource **por constructor**.
-3. **Datasources duales:** `RestDatasource` y `GraphQLDatasource` implementan la misma interfaz y devuelven los **mismos DTO**. El contenedor elige uno según `NEXT_PUBLIC_DATA_SOURCE`. Cambiar la variable no puede tocar casos de uso, entidades, slices ni componentes. El cliente WebSocket también vive en `infrastructure/datasources/` detrás de una interfaz. Por eso `apiClient` y `ApiError` (ver «Cliente HTTP») son un detalle de REST: solo los importan los datasources REST. Si un caso de uso, un repositorio o un mapper los importa, el módulo ya no funciona con GraphQL.
+3. **Datasources duales:** `RestDatasource` y `GraphQLDatasource` implementan la misma interfaz y devuelven los **mismos DTO**. El contenedor elige uno según `NEXT_PUBLIC_DATA_SOURCE`. Cambiar la variable no puede tocar casos de uso, entidades, slices ni componentes. El cliente WebSocket también vive en `infrastructure/datasources/` detrás de una interfaz. Por eso `apiClient` y `ApiError` (ver «Cliente HTTP») son un detalle de REST: solo los importan los datasources REST. Si un caso de uso, un repositorio o un mapper los importa, el módulo ya no funciona con GraphQL. El datasource GraphQL usa su propio cliente en `src/core/graphql/` (la contraparte GraphQL de `src/core/http/`), así que la regla de `apiClient` y `ApiError` solo para REST sigue en pie. Si la interfaz del datasource crece (crear, editar, borrar), **ambos** datasources deben implementar los métodos nuevos.
 4. **DI:** el contenedor es el único sitio que conoce clases concretas (funcional, sin librería de DI) y exporta casos de uso ya instanciados.
 5. **Thunks y Server Actions.** El thunk llama a una **Server Action** (`presentation/actions/*.actions.ts`, `'use server'`) y esa llama a `<feature>Container.<casoDeUso>.execute()`. Solo las acciones importan `di/`. Las acciones devuelven ViewModels (objetos planos serializables), nunca entidades ni clases; los errores esperados viajan como valor `{ ok: false, message }` y el thunk los convierte en `rejectWithValue`. El estado de Redux guarda ViewModels, no instancias de entidades.
 6. **Componentes** reciben props (ViewModels y callbacks). No importan `react-redux`, el store, slices ni contenedores. Los componentes de React **no acceden al store ni a la red**: usan hooks fachada (`useAuth`, `usePosts`…).
@@ -146,6 +147,19 @@ apiClient.get<PostDto>(`/posts/${id}`, { auth: "optional" });
 - Espera 10 s como máximo. Por defecto usa `cache: "no-store"`: en Next 16 un `fetch` sin esa opción puede ejecutarse al construir.
 - `createApiClient` (`http-client.ts`) no conoce Next ni la sesión, así que se puede probar sin servidor. `api-client.ts` es el único sitio que lo une con `getSession()`.
 
+### Cliente GraphQL (`src/core/graphql/`)
+
+Los datasources GraphQL hablan con la API a través de `graphqlRequest` (`graphql-client.ts`, solo servidor). Hace un `POST` a `<API_URL>/graphql` y, si `auth` es `"required"` (valor por defecto) u `"optional"`, manda el JWT de la sesión como `Authorization: Bearer`.
+
+```ts
+// lectura pública de eventos: no hace falta sesión
+graphqlRequest<{ events: PaginatedEventsDto }>(GET_EVENTS, variables, { auth: "none" });
+```
+
+- GraphQL responde HTTP 200 incluso con errores. Si la respuesta trae `errors`, lanza un `GraphQLRequestError` (`graphql-error.ts`) cuyo `status` es `errors[0].extensions.originalError.statusCode`. No uses `extensions.code`: un 404 llega como `INTERNAL_SERVER_ERROR`.
+- Espera 10 s como máximo.
+- No reutiliza `apiClient` ni `ApiError`: son un detalle de REST y así el módulo no depende del otro transporte.
+
 Antes de dar una tarea por terminada: `npm run lint:clean`, `npm run typecheck`, `npm run lint` y, si tocaste rutas, `npm run build`.
 
 ## La API (backend Boosted)
@@ -155,18 +169,18 @@ Antes de dar una tarea por terminada: `npm run lint:clean`, `npm run typecheck`,
 - Roles: `aficionado`, `moderador`, `administrador`. El payload del JWT es `{ sub, name, email, role, permissions }`; `name` y `permissions` son opcionales en el tipo para tolerar tokens emitidos antes de que existieran. Un cambio de rol, de permisos o una desactivación tienen efecto inmediato en el backend, aunque el token siga vigente.
 - Permisos (`recurso:acción`): `users:read`, `users:update-role`, `users:update-status`, `posts:moderate`, `roles:read` y `roles:update`. Por defecto el aficionado no tiene ninguno, el moderador tiene `posts:moderate` y el administrador tiene todos. Se gestionan con `GET /permissions`, `GET /roles` y `PUT /roles/:role/permissions`. Los del token solo orientan a la interfaz.
 - Eventos: `GET /events` está paginado y responde `{ data, total, page, limit }`, con `page` desde 1 y `limit` de 1 a 50 (por defecto 10).
+- Eventos por GraphQL: `POST /graphql` con las queries `events(page, limit, city, type, startDate, endDate)` y `event(id)` y las mutations `createEvent`, `updateEvent` y `removeEvent`, sobre el mismo servicio que REST. `type` es un String con los mismos valores que REST (`meet`, `exposicion`…). Ver README del repo `Boosted`, sección 13.11.
 - Tiempo real: `POST /auth/socket-ticket` (con Bearer) devuelve `{ ticket, expiresIn: 60 }`, de un solo uso. Se conecta con `io(NEXT_PUBLIC_WS_URL, { auth: { ticket } })` y el servidor emite el evento `notification` al autor de una publicación cuando le dan like o la comentan.
 - Referencia completa de endpoints, validaciones y matriz de permisos: README del repo `Boosted`, secciones 11, 13, 13.9 (roles y permisos) y 13.10 (WebSocket). **No copiar contraseñas ni datos del seed a este repo.**
-- **Estado a 2026-11-12:** el backend ya tiene REST con permisos, eventos paginados y el WebSocket de notificaciones. Todavía **no** tiene GraphQL: se implementa después de verlo en clase. Verifica el estado real del backend antes de asumir que algo existe.
+- **Estado a 2026-11-17:** el backend ya tiene REST con permisos, eventos paginados, el WebSocket de notificaciones y ahora GraphQL para eventos (rama `feature/graphql-events` del backend; revisa su `develop` antes de asumir que ya está integrada). Verifica el estado real del backend antes de asumir que algo existe.
 
 ## Decisiones abiertas del equipo (no asumir en silencio)
 
 Si una tarea depende de una de estas, pregunta al equipo antes de decidir:
 
-- **Módulo dual REST/GraphQL:** el módulo es `events` (por eso se construye con un único puerto de repositorio y un datasource REST). El datasource GraphQL se agrega cuando el backend lo exponga, después de verlo en clase.
 - **E2E:** Playwright o Cypress (el PDF dice Cypress; por ahora Playwright).
 
-Ya decididas: sesión en cookie httpOnly con Server Actions (como el curso), UI con Tailwind + daisyUI, las extensiones del backend viven en el repo `Boosted`, los permisos son `recurso:acción` y viajan en el JWT, los datasources REST obtienen el token con `apiClient` (`src/core/http/`), y el tiempo real usa un ticket de un solo uso (el socket vive en el navegador, así que su contenedor no es `server-only` y el ticket se pide a un Route Handler same-origin; ver el issue #37).
+Ya decididas: el módulo dual es `events`, con datasources REST y GraphQL elegidos por `NEXT_PUBLIC_DATA_SOURCE`, sesión en cookie httpOnly con Server Actions (como el curso), UI con Tailwind + daisyUI, las extensiones del backend viven en el repo `Boosted`, los permisos son `recurso:acción` y viajan en el JWT, los datasources REST obtienen el token con `apiClient` (`src/core/http/`), y el tiempo real usa un ticket de un solo uso (el socket vive en el navegador, así que su contenedor no es `server-only` y el ticket se pide a un Route Handler same-origin; ver el issue #37).
 
 ## Flujo de trabajo con Git
 
