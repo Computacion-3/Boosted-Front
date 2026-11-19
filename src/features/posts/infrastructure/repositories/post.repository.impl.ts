@@ -33,6 +33,10 @@ export class PostRepositoryImpl implements PostRepository {
     return PostMapper.toDomain(await this.datasource.updatePost(id, PostMapper.toUpdateBody(draft)));
   }
 
+  async setHidden(id: string, hidden: boolean): Promise<Post> {
+    return PostMapper.toDomain(await this.datasource.setPostHidden(id, { hidden }));
+  }
+
   async remove(id: string): Promise<void> {
     // La respuesta `{ deleted: true }` no aporta nada al dominio.
     await this.datasource.deletePost(id);

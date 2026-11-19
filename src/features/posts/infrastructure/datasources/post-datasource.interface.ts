@@ -1,4 +1,11 @@
-import type { DeletedDto, PaginatedPostsDto, PostBodyDto, PostDto, PostQueryDto } from "../dtos/post.dto";
+import type {
+  DeletedDto,
+  PaginatedPostsDto,
+  PostBodyDto,
+  PostDto,
+  PostHiddenBodyDto,
+  PostQueryDto,
+} from "../dtos/post.dto";
 
 /**
  * Contrato de las fuentes de datos de publicaciones. REST y GraphQL lo implementan
@@ -12,4 +19,6 @@ export interface PostDatasource {
   deletePost(id: string): Promise<DeletedDto>;
   /** La API alterna el like del usuario en la sesión y devuelve la publicación ya actualizada. */
   toggleLike(id: string): Promise<PostDto>;
+  /** Moderación: oculta o vuelve a mostrar la publicación y devuelve la publicación ya actualizada. */
+  setPostHidden(id: string, body: PostHiddenBodyDto): Promise<PostDto>;
 }

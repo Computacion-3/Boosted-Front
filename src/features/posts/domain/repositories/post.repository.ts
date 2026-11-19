@@ -37,4 +37,6 @@ export interface PostRepository {
   remove(id: string): Promise<void>;
   /** La API alterna el like: si ya lo había lo quita y si no lo agrega. Devuelve la publicación actualizada. */
   toggleLike(id: string): Promise<Post>;
+  /** Oculta (`true`) o vuelve a mostrar (`false`) la publicación en el feed. Devuelve la publicación actualizada. */
+  setHidden(id: string, hidden: boolean): Promise<Post>;
 }

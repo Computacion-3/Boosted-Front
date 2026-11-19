@@ -1,7 +1,7 @@
 "use server";
 
 import { actionOk, toActionError, type ActionResult } from "@/src/core/errors";
-import { requireSession, type Session } from "@/src/lib/dal";
+import { requirePermission, requireSession, type Session } from "@/src/lib/dal";
 import { postsContainer } from "../../di/posts.container";
 import type { PostDraft } from "../../domain/entities/post-draft";
 import type { PostQuery } from "../../domain/repositories/post.repository";
@@ -143,5 +143,39 @@ export async function deletePostAction(
     return actionOk({ id });
   } catch (error) {
     return toActionError(error, POST_WRITE_ERRORS);
+  }
+}
+
+const MODERATION_ERRORS = {
+  403: "No tienes permiso para moderar. Si tu rol cambió, cierra sesión y vuelve a entrar.",
+  404: "La publicación ya no existe. Vuelve a la comunidad para ver las actuales.",
+};
+
+export async function hidePostAction(
+  id: string,
+): Promise<ActionResult<PostViewModel>> {
+  // Fuera del try/catch: redirect() lanza una excepción y el catch se la tragaría.
+  // El permiso del token solo orienta a la interfaz; aquí se exige de verdad y la API vuelve a decidir.
+  const session = await requirePermission("posts:moderate");
+
+  try {
+    const post = await postsContainer.hidePost.execute(id);
+    return actionOk(PostViewModelMapper.toViewModel(post, viewerOf(session)));
+  } catch (error) {
+    return toActionError(error, MODERATION_ERRORS);
+  }
+}
+
+export async function restorePostAction(
+  id: string,
+): Promise<ActionResult<PostViewModel>> {
+  // Fuera del try/catch: redirect() lanza una excepción y el catch se la tragaría.
+  const session = await requirePermission("posts:moderate");
+
+  try {
+    const post = await postsContainer.restorePost.execute(id);
+    return actionOk(PostViewModelMapper.toViewModel(post, viewerOf(session)));
+  } catch (error) {
+    return toActionError(error, MODERATION_ERRORS);
   }
 }

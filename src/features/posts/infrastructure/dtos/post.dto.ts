@@ -55,6 +55,11 @@ export interface PostBodyDto {
   eventLocation?: string;
 }
 
+/** Cuerpo de PATCH /posts/:id/hidden: `true` oculta la publicación del feed, `false` la muestra. */
+export interface PostHiddenBodyDto {
+  hidden: boolean;
+}
+
 /** Respuesta de DELETE /posts/:id. */
 export interface DeletedDto {
   deleted: boolean;

@@ -6,6 +6,8 @@ import {
   deletePostAction,
   getPostAction,
   getPostsAction,
+  hidePostAction,
+  restorePostAction,
   togglePostLikeAction,
   updatePostAction,
 } from "../actions/posts.actions";
@@ -151,6 +153,32 @@ export const deletePost = createAppThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const result = await deletePostAction(id);
+      if (!result.ok) return rejectWithValue(result.message);
+      return result.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const hidePost = createAppThunk(
+  "posts/hide",
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const result = await hidePostAction(id);
+      if (!result.ok) return rejectWithValue(result.message);
+      return result.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const restorePost = createAppThunk(
+  "posts/restore",
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const result = await restorePostAction(id);
       if (!result.ok) return rejectWithValue(result.message);
       return result.data;
     } catch (error) {
@@ -328,6 +356,59 @@ export const postsSlice = createSlice({
           id: action.meta.requestId,
           tone: "error",
           message: action.payload ?? "No se pudo eliminar la publicación",
+        };
+      })
+      // Moderación: el detalle se actualiza con lo que devuelve el servidor y el aviso sale en esa misma pantalla.
+      .addCase(hidePost.pending, (state) => {
+        state.mutation = { status: "submitting", errorMessage: null };
+      })
+      .addCase(hidePost.fulfilled, (state, action) => {
+        state.mutation.status = "idle";
+        // El feed no muestra publicaciones ocultas: sale de la lista, que se recarga al volver.
+        if (state.list.items.some((post) => post.id === action.payload.id)) {
+          state.list.items = state.list.items.filter((post) => post.id !== action.payload.id);
+          state.list.total = Math.max(0, state.list.total - 1);
+        }
+        if (state.detail.post?.id === action.payload.id) state.detail.post = action.payload;
+        state.list.status = "idle";
+        state.feedback = {
+          id: action.meta.requestId,
+          tone: "success",
+          message: "Publicación oculta. Puedes restaurarla desde esta página.",
+          target: "detail",
+        };
+      })
+      .addCase(hidePost.rejected, (state, action) => {
+        state.mutation.status = "idle";
+        state.feedback = {
+          id: action.meta.requestId,
+          tone: "error",
+          message: action.payload ?? "No se pudo ocultar la publicación",
+          target: "detail",
+        };
+      })
+      .addCase(restorePost.pending, (state) => {
+        state.mutation = { status: "submitting", errorMessage: null };
+      })
+      .addCase(restorePost.fulfilled, (state, action) => {
+        state.mutation.status = "idle";
+        if (state.detail.post?.id === action.payload.id) state.detail.post = action.payload;
+        // La publicación vuelve a aparecer en el feed: hay que pedirlo de nuevo.
+        state.list.status = "idle";
+        state.feedback = {
+          id: action.meta.requestId,
+          tone: "success",
+          message: "Publicación restaurada",
+          target: "detail",
+        };
+      })
+      .addCase(restorePost.rejected, (state, action) => {
+        state.mutation.status = "idle";
+        state.feedback = {
+          id: action.meta.requestId,
+          tone: "error",
+          message: action.payload ?? "No se pudo restaurar la publicación",
+          target: "detail",
         };
       });
   },
