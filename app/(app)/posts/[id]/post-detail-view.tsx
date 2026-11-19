@@ -8,9 +8,11 @@ import { CommentForm } from "@/src/features/comments/presentation/components/Com
 import { CommentList } from "@/src/features/comments/presentation/components/CommentList";
 import { useComments } from "@/src/features/comments/presentation/hooks/use-comments";
 import { DeletePostModal } from "@/src/features/posts/presentation/components/DeletePostModal";
+import { ModerationBar } from "@/src/features/posts/presentation/components/ModerationBar";
 import { PostDetail } from "@/src/features/posts/presentation/components/PostDetail";
 import { usePostDetail } from "@/src/features/posts/presentation/hooks/use-post-detail";
 import { usePostEditor } from "@/src/features/posts/presentation/hooks/use-post-editor";
+import { usePostModeration } from "@/src/features/posts/presentation/hooks/use-post-moderation";
 import { usePostsToast } from "@/src/features/posts/presentation/hooks/use-posts-toast";
 
 function BackLink() {
@@ -87,6 +89,7 @@ export function PostDetailView({ id }: { id: string }) {
   const router = useRouter();
   const { post, isLoading, errorMessage, isLiking, toggleLike, reload } = usePostDetail(id);
   const { remove, isSubmitting } = usePostEditor();
+  const { hide, restore, isSubmitting: isModerating } = usePostModeration();
   const { toasts, dismissToast } = usePostsToast("detail");
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
@@ -111,6 +114,15 @@ export function PostDetailView({ id }: { id: string }) {
             onToggleLike={toggleLike}
             onDelete={() => setIsDeleteOpen(true)}
           />
+          {post.canModerate && (
+            <ModerationBar
+              postTitle={post.title}
+              isHidden={post.isHidden}
+              isSubmitting={isModerating}
+              onHide={() => hide(post.id)}
+              onRestore={() => restore(post.id)}
+            />
+          )}
           <DeletePostModal
             isOpen={isDeleteOpen}
             postTitle={post.title}
