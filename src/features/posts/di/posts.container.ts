@@ -1,5 +1,6 @@
 import "server-only";
 import { GetPostsUseCase } from "../domain/usecases/get-posts.usecase";
+import { TogglePostLikeUseCase } from "../domain/usecases/toggle-post-like.usecase";
 import type { PostDatasource } from "../infrastructure/datasources/post-datasource.interface";
 import { PostRestDatasource } from "../infrastructure/datasources/post-rest-datasource";
 import { PostRepositoryImpl } from "../infrastructure/repositories/post.repository.impl";
@@ -29,6 +30,7 @@ const repository = new PostRepositoryImpl(createPostDatasource());
 
 export const postsContainer = {
   getPosts: new GetPostsUseCase(repository),
+  togglePostLike: new TogglePostLikeUseCase(repository),
 };
 
 export type PostsContainer = typeof postsContainer;

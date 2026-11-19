@@ -26,4 +26,6 @@ export interface PostQuery extends PostFilters {
  */
 export interface PostRepository {
   findAll(query: PostQuery): Promise<Paginated<Post>>;
+  /** La API alterna el like: si ya lo había lo quita y si no lo agrega. Devuelve la publicación actualizada. */
+  toggleLike(id: string): Promise<Post>;
 }

@@ -1,6 +1,8 @@
 "use client";
 
-import { ErrorBanner, Pagination } from "@/src/core/components/ui";
+import { useEffect } from "react";
+import { ErrorBanner, Pagination, ToastContainer } from "@/src/core/components/ui";
+import { useToast } from "@/src/core/hooks/use-toast";
 import { PostFiltersBar } from "@/src/features/posts/presentation/components/PostFiltersBar";
 import { PostList } from "@/src/features/posts/presentation/components/PostList";
 import { PostResultsSummary } from "@/src/features/posts/presentation/components/PostResultsSummary";
@@ -21,7 +23,19 @@ export function PostsView() {
     filterByAuthor,
     filterByVehicle,
     reload,
+    likingIds,
+    toggleLike,
+    feedback,
+    dismissFeedback,
   } = usePosts();
+  const { toasts, showToast, dismissToast } = useToast();
+
+  // El mensaje de Redux es de un solo uso: se muestra como toast y se descarta del estado.
+  useEffect(() => {
+    if (!feedback) return;
+    showToast(feedback.message, feedback.tone);
+    dismissFeedback();
+  }, [feedback, showToast, dismissFeedback]);
 
   // La paginación está al final de la lista: al cambiar de página se vuelve arriba.
   const handlePageChange = (next: number) => {
@@ -50,10 +64,14 @@ export function PostsView() {
             onFilterByAuthor={filterByAuthor}
             onFilterByVehicle={filterByVehicle}
             onClearFilters={() => applyFilters({})}
+            onToggleLike={toggleLike}
+            likingIds={likingIds}
           />
           <Pagination page={page} total={total} limit={limit} onChange={handlePageChange} />
         </>
       )}
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </section>
   );
 }

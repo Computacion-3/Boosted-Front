@@ -7,6 +7,7 @@ import type { PostQuery } from "../../domain/repositories/post.repository";
 import {
   PostViewModelMapper,
   type PaginatedPostsViewModel,
+  type PostViewModel,
 } from "../viewmodels/post.viewmodel";
 
 /*
@@ -33,5 +34,23 @@ export async function getPostsAction(
     });
   } catch (error) {
     return toActionError(error);
+  }
+}
+
+export async function togglePostLikeAction(
+  postId: string,
+): Promise<ActionResult<PostViewModel>> {
+  // Fuera del try/catch: redirect() lanza una excepción y el catch se la tragaría.
+  const session = await requireSession();
+
+  try {
+    const post = await postsContainer.togglePostLike.execute(postId);
+    return actionOk(
+      PostViewModelMapper.toViewModel(post, { viewerId: session.userId }),
+    );
+  } catch (error) {
+    return toActionError(error, {
+      404: "La publicación ya no existe. Recarga el feed para ver las actuales.",
+    });
   }
 }

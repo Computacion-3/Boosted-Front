@@ -1,12 +1,21 @@
 import type { PostViewModel } from "../viewmodels/post.viewmodel";
+import { LikeButton } from "./LikeButton";
 
 export type PostCardProps = {
   post: PostViewModel;
   onFilterByAuthor: (authorId: string) => void;
   onFilterByVehicle: (vehicleId: string) => void;
+  onToggleLike: (postId: string) => void;
+  isLiking: boolean;
 };
 
-export function PostCard({ post, onFilterByAuthor, onFilterByVehicle }: PostCardProps) {
+export function PostCard({
+  post,
+  onFilterByAuthor,
+  onFilterByVehicle,
+  onToggleLike,
+  isLiking,
+}: PostCardProps) {
   return (
     <article className="card h-full bg-base-100 shadow-sm">
       <div className="card-body gap-3">
@@ -26,7 +35,14 @@ export function PostCard({ post, onFilterByAuthor, onFilterByVehicle }: PostCard
         <div className="mt-auto flex flex-col gap-1 pt-2">
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="font-medium">{post.authorLabel}</span>
-            <span className="text-base-content/70 tabular-nums">{post.likesLabel}</span>
+            <div className="-mr-2">
+              <LikeButton
+                liked={post.likedByMe}
+                label={post.likesLabel}
+                disabled={isLiking}
+                onToggle={() => onToggleLike(post.id)}
+              />
+            </div>
           </div>
           <div className="-ml-3 flex flex-wrap">
             <button
