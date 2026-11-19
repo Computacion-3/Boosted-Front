@@ -1,7 +1,8 @@
 "use server";
 
 import { actionError, actionOk, toActionError, type ActionResult } from "@/src/core/errors";
-import { createSession } from "@/src/lib/session";
+import { getSession } from "@/src/lib/dal";
+import { createSession, deleteSession } from "@/src/lib/session";
 import { authContainer } from "../../di/auth.container";
 import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
 import {
@@ -40,4 +41,25 @@ export async function loginAction(
   } catch (error) {
     return toActionError(error, LOGIN_ERROR_MESSAGES);
   }
+}
+
+/**
+ * Cierra sesión: primero le pide al backend que revoque el token (así deja de
+ * servir aunque alguien lo haya copiado) y después borra la cookie.
+ *
+ * Si el backend falla (caído, o el token ya estaba revocado), la cookie se borra
+ * igual: cerrar sesión en este navegador nunca debe quedar a medias.
+ */
+export async function logoutAction(): Promise<void> {
+  const session = await getSession();
+
+  if (session) {
+    try {
+      await authContainer.logout.execute();
+    } catch {
+      // Se ignora a propósito: lo importante para la persona es salir.
+    }
+  }
+
+  await deleteSession();
 }
