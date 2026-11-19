@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { getErrorMessage } from "@/src/core/errors";
 import { loginAction } from "../actions/auth.actions";
 import type { LoginFormValues } from "../schemas/login.schema";
@@ -43,6 +43,10 @@ export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    /** Pone en Redux la sesión leída en el servidor (AuthHydrator), o null si no hay. */
+    setUser: (state, action: PayloadAction<AuthUserViewModel | null>) => {
+      state.user = action.payload;
+    },
     clearAuthError: (state) => {
       state.errorMessage = null;
     },
@@ -65,5 +69,5 @@ export const authSlice = createSlice({
   },
 });
 
-export const { clearAuthError } = authSlice.actions;
+export const { setUser, clearAuthError } = authSlice.actions;
 export const authReducer = authSlice.reducer;

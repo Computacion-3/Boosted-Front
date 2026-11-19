@@ -3,14 +3,15 @@
 import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
 import type { LoginFormValues } from "../schemas/login.schema";
-import { clearAuthError, login as loginThunk } from "../store/auth.slice";
+import { clearAuthError, login as loginThunk, setUser } from "../store/auth.slice";
+import type { AuthUserViewModel } from "../viewmodels/auth-user.viewmodel";
 
 /**
  * Hook fachada de autenticación. Los componentes no ven Redux: reciben la
  * persona, el estado de carga, el error y funciones.
  *
- * Por ahora cubre el login (#9). El #11 agrega hidratar la sesión al recargar,
- * register, logout, hasRole y hasPermission.
+ * hasRole y hasPermission solo sirven para mostrar u ocultar interfaz.
+ * Ocultar un botón no es proteger: eso lo hacen el DAL y cada Server Action.
  */
 export function useAuth() {
   const dispatch = useAppDispatch();
@@ -25,15 +26,36 @@ export function useAuth() {
     [dispatch],
   );
 
+  /** Lo usa AuthHydrator para cargar en Redux la sesión que leyó el servidor. */
+  const hydrate = useCallback(
+    (sessionUser: AuthUserViewModel | null) => {
+      dispatch(setUser(sessionUser));
+    },
+    [dispatch],
+  );
+
   const clearError = useCallback(() => {
     dispatch(clearAuthError());
   }, [dispatch]);
 
+  /** true si la persona tiene ese rol (aficionado, moderador, administrador). */
+  const hasRole = useCallback((role: string) => user?.role === role, [user]);
+
+  /** true si la persona tiene ese permiso (`recurso:acción`, por ejemplo `posts:moderate`). */
+  const hasPermission = useCallback(
+    (permission: string) => user?.permissions.includes(permission) ?? false,
+    [user],
+  );
+
   return {
     user,
+    isAuthenticated: user !== null,
     isLoading: status === "loading",
     errorMessage,
     login,
+    hydrate,
     clearError,
+    hasRole,
+    hasPermission,
   };
 }
