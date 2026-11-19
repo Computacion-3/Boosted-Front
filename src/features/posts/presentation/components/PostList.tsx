@@ -10,6 +10,8 @@ export type PostListProps = {
   onFilterByAuthor: (authorId: string) => void;
   onFilterByVehicle: (vehicleId: string) => void;
   onClearFilters: () => void;
+  onToggleLike: (postId: string) => void;
+  likingIds: string[];
 };
 
 const SKELETON_COUNT = 6;
@@ -43,6 +45,8 @@ export function PostList({
   onFilterByAuthor,
   onFilterByVehicle,
   onClearFilters,
+  onToggleLike,
+  likingIds,
 }: PostListProps) {
   if (isLoading) {
     return (
@@ -85,6 +89,8 @@ export function PostList({
             post={post}
             onFilterByAuthor={onFilterByAuthor}
             onFilterByVehicle={onFilterByVehicle}
+            onToggleLike={onToggleLike}
+            isLiking={likingIds.includes(post.id)}
           />
         </li>
       ))}
