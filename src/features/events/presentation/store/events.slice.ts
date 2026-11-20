@@ -1,7 +1,14 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { getErrorMessage } from "@/src/core/errors";
 import type { EventQuery } from "../../domain/repositories/event.repository";
-import { getEventByIdAction, getEventsAction } from "../actions/events.actions";
+import {
+  createEventAction,
+  deleteEventAction,
+  getEventByIdAction,
+  getEventsAction,
+  updateEventAction,
+} from "../actions/events.actions";
+import type { EventFormValues } from "../viewmodels/event-form.viewmodel";
 import type { EventViewModel } from "../viewmodels/event.viewmodel";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
@@ -25,6 +32,11 @@ interface EventsState {
     status: RequestStatus;
     errorMessage: string | null;
   };
+  /** Crear, editar o eliminar en curso. */
+  mutation: {
+    isSaving: boolean;
+    errorMessage: string | null;
+  };
 }
 
 const initialState: EventsState = {
@@ -37,6 +49,7 @@ const initialState: EventsState = {
     requestId: null,
   },
   detail: { item: null, status: "idle", errorMessage: null },
+  mutation: { isSaving: false, errorMessage: null },
 };
 
 const createAppThunk = createAsyncThunk.withTypes<{ rejectValue: string }>();
@@ -72,10 +85,53 @@ export const fetchEventById = createAppThunk(
   },
 );
 
+export const createEventMutation = createAppThunk(
+  "events/create",
+  async (values: EventFormValues, { rejectWithValue }) => {
+    try {
+      const result = await createEventAction(values);
+      if (!result.ok) return rejectWithValue(result.message);
+      return result.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const updateEventMutation = createAppThunk(
+  "events/update",
+  async ({ id, values }: { id: string; values: EventFormValues }, { rejectWithValue }) => {
+    try {
+      const result = await updateEventAction(id, values);
+      if (!result.ok) return rejectWithValue(result.message);
+      return result.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+export const deleteEventMutation = createAppThunk(
+  "events/delete",
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const result = await deleteEventAction(id);
+      if (!result.ok) return rejectWithValue(result.message);
+      return result.data.id;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
 export const eventsSlice = createSlice({
   name: "events",
   initialState,
-  reducers: {},
+  reducers: {
+    clearMutationError: (state) => {
+      state.mutation.errorMessage = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchEvents.pending, (state, action) => {
@@ -112,7 +168,41 @@ export const eventsSlice = createSlice({
         state.detail.item = null;
         state.detail.errorMessage = action.payload ?? "No se pudo cargar el evento";
       });
+
+    // Crear, editar y eliminar comparten el estado de "guardando" y su error.
+    for (const thunk of [createEventMutation, updateEventMutation, deleteEventMutation]) {
+      builder
+        .addCase(thunk.pending, (state) => {
+          state.mutation.isSaving = true;
+          state.mutation.errorMessage = null;
+        })
+        .addCase(thunk.rejected, (state, action) => {
+          state.mutation.isSaving = false;
+          state.mutation.errorMessage = action.payload ?? "No se pudo guardar el evento";
+        });
+    }
+
+    builder
+      .addCase(createEventMutation.fulfilled, (state, action) => {
+        state.mutation.isSaving = false;
+        state.detail = { item: action.payload, status: "succeeded", errorMessage: null };
+        // El listado se vuelve a pedir al volver a /events (el nuevo puede caer en otra página).
+        state.list.status = "idle";
+      })
+      .addCase(updateEventMutation.fulfilled, (state, action) => {
+        state.mutation.isSaving = false;
+        state.detail = { item: action.payload, status: "succeeded", errorMessage: null };
+        state.list.items = state.list.items.map((event) =>
+          event.id === action.payload.id ? action.payload : event,
+        );
+      })
+      .addCase(deleteEventMutation.fulfilled, (state, action) => {
+        state.mutation.isSaving = false;
+        if (state.detail.item?.id === action.payload) state.detail.item = null;
+        state.list.status = "idle";
+      });
   },
 });
 
+export const { clearMutationError } = eventsSlice.actions;
 export const eventsReducer = eventsSlice.reducer;
