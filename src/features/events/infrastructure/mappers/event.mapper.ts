@@ -1,7 +1,17 @@
 import type { Paginated } from "@/src/core/domain/paginated";
 import { CommunityEvent, isEventType } from "../../domain/entities/community-event";
-import type { EventQuery } from "../../domain/repositories/event.repository";
-import type { EventDto, EventQueryDto, PaginatedEventsDto } from "../dtos/event.dto";
+import type {
+  CreateEventParams,
+  EventQuery,
+  UpdateEventParams,
+} from "../../domain/repositories/event.repository";
+import type {
+  CreateEventDto,
+  EventDto,
+  EventQueryDto,
+  PaginatedEventsDto,
+  UpdateEventDto,
+} from "../dtos/event.dto";
 
 /**
  * La «aduana» entre la API y el dominio. Si el backend cambia un nombre de campo,
@@ -43,5 +53,23 @@ export class EventMapper {
       startDate: query.startDate,
       endDate: query.endDate,
     };
+  }
+
+  static toCreateDto(params: CreateEventParams): CreateEventDto {
+    return {
+      name: params.name,
+      // Los opcionales vacíos no se mandan (la API rechaza campos de más, no los ausentes).
+      description: params.description ?? undefined,
+      city: params.city,
+      date: params.date,
+      location: params.location ?? undefined,
+      organizer: params.organizer,
+      type: params.type,
+    };
+  }
+
+  static toUpdateDto(params: UpdateEventParams): UpdateEventDto {
+    // Se copian solo los campos presentes; un opcional en null se manda como null para borrarlo.
+    return { ...params };
   }
 }

@@ -1,6 +1,11 @@
 import type { Paginated } from "@/src/core/domain/paginated";
 import type { CommunityEvent } from "../../domain/entities/community-event";
-import type { EventQuery, EventRepository } from "../../domain/repositories/event.repository";
+import type {
+  CreateEventParams,
+  EventQuery,
+  EventRepository,
+  UpdateEventParams,
+} from "../../domain/repositories/event.repository";
 import type { EventDatasource } from "../datasources/event-datasource.interface";
 import { EventMapper } from "../mappers/event.mapper";
 
@@ -19,5 +24,19 @@ export class EventRepositoryImpl implements EventRepository {
   async findById(id: string): Promise<CommunityEvent> {
     const dto = await this.datasource.getEvent(id);
     return EventMapper.toDomain(dto);
+  }
+
+  async create(params: CreateEventParams): Promise<CommunityEvent> {
+    const dto = await this.datasource.createEvent(EventMapper.toCreateDto(params));
+    return EventMapper.toDomain(dto);
+  }
+
+  async update(id: string, params: UpdateEventParams): Promise<CommunityEvent> {
+    const dto = await this.datasource.updateEvent(id, EventMapper.toUpdateDto(params));
+    return EventMapper.toDomain(dto);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.datasource.deleteEvent(id);
   }
 }
