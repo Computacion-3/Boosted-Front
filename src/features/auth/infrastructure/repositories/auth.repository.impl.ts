@@ -11,4 +11,8 @@ export class AuthRepositoryImpl implements AuthRepository {
     const dto = await this.datasource.login(AuthMapper.toLoginRequestDto(params));
     return AuthMapper.toDomain(dto);
   }
+
+  logout(): Promise<void> {
+    return this.datasource.logout();
+  }
 }
