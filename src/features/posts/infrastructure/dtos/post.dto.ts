@@ -42,3 +42,25 @@ export interface PostQueryDto {
   vehicleId?: string;
   search?: string;
 }
+
+/** Cuerpo de POST /posts y PATCH /posts/:id. Nunca lleva `authorId`: la API lo toma de la sesión (si llega responde 400). */
+export interface PostBodyDto {
+  title: string;
+  content: string;
+  type: string;
+  vehicleId?: string | null;
+  questionDetails?: string;
+  eventDate?: string;
+  eventCity?: string;
+  eventLocation?: string;
+}
+
+/** Cuerpo de PATCH /posts/:id/hidden: `true` oculta la publicación del feed, `false` la muestra. */
+export interface PostHiddenBodyDto {
+  hidden: boolean;
+}
+
+/** Respuesta de DELETE /posts/:id. */
+export interface DeletedDto {
+  deleted: boolean;
+}
