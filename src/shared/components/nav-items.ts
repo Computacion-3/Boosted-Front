@@ -18,6 +18,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/posts", label: "Comunidad" },
   { href: "/events", label: "Eventos" },
   { href: "/admin/users", label: "Usuarios", permission: PERMISSIONS.USERS_READ },
+  { href: "/admin/roles", label: "Roles", permission: PERMISSIONS.ROLES_READ },
 ];
 
 /** Deja solo los enlaces públicos y los que el usuario tiene permiso de ver. */
