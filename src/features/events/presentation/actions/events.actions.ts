@@ -1,7 +1,7 @@
 "use server";
 
 import { actionOk, toActionError, type ActionResult } from "@/src/core/errors";
-import { getSession } from "@/src/lib/dal";
+import { getSession, requireSession } from "@/src/lib/dal";
 import { eventsContainer } from "../../di/events.container";
 import type { EventQuery } from "../../domain/repositories/event.repository";
 import {
@@ -33,6 +33,11 @@ const NOT_FOUND_MESSAGE = { 404: "El evento no existe o fue eliminado." };
 export async function getEventsAction(
   query: EventQuery,
 ): Promise<ActionResult<PaginatedEventsViewModel>> {
+  // Las páginas de eventos exigen sesión; la acción también, porque una Server
+  // Action se puede llamar directo sin pasar por la página. Fuera del try/catch:
+  // redirect() lanza una excepción y el catch se la tragaría.
+  await requireSession();
+
   try {
     const context = await getViewModelContext();
     const result = await eventsContainer.getEvents.execute(query);
@@ -48,6 +53,8 @@ export async function getEventsAction(
 }
 
 export async function getEventByIdAction(id: string): Promise<ActionResult<EventViewModel>> {
+  await requireSession();
+
   try {
     const context = await getViewModelContext();
     const event = await eventsContainer.getEventById.execute(id);
