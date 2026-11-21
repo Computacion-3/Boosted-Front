@@ -7,8 +7,10 @@ import {
   clearAuthError,
   login as loginThunk,
   logout as logoutThunk,
+  register as registerThunk,
   setUser,
 } from "../store/auth.slice";
+import type { RegisterFormValues } from "../schemas/register.schema";
 import type { AuthUserViewModel } from "../viewmodels/auth-user.viewmodel";
 
 /**
@@ -27,6 +29,15 @@ export function useAuth() {
     async (values: LoginFormValues): Promise<boolean> => {
       const result = await dispatch(loginThunk(values));
       return loginThunk.fulfilled.match(result);
+    },
+    [dispatch],
+  );
+
+  /** Devuelve true si creó la cuenta; si no, el mensaje queda en `errorMessage`. */
+  const register = useCallback(
+    async (values: RegisterFormValues): Promise<boolean> => {
+      const result = await dispatch(registerThunk(values));
+      return registerThunk.fulfilled.match(result);
     },
     [dispatch],
   );
@@ -63,6 +74,7 @@ export function useAuth() {
     isLoading: status === "loading",
     errorMessage,
     login,
+    register,
     logout,
     hydrate,
     clearError,

@@ -1,10 +1,17 @@
 "use server";
 
-import { actionError, actionOk, toActionError, type ActionResult } from "@/src/core/errors";
+import {
+  actionError,
+  actionOk,
+  getErrorStatus,
+  toActionError,
+  type ActionResult,
+} from "@/src/core/errors";
 import { getSession } from "@/src/lib/dal";
 import { createSession, deleteSession } from "@/src/lib/session";
 import { authContainer } from "../../di/auth.container";
 import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
+import { registerSchema, type RegisterFormValues } from "../schemas/register.schema";
 import {
   AuthUserViewModelMapper,
   type AuthUserViewModel,
@@ -40,6 +47,31 @@ export async function loginAction(
     return actionOk(AuthUserViewModelMapper.fromTokenPayload(payload));
   } catch (error) {
     return toActionError(error, LOGIN_ERROR_MESSAGES);
+  }
+}
+
+/**
+ * Crea la cuenta. No inicia sesión: si sale bien, la pantalla manda a /login.
+ * Errores: 409 si el correo o el usuario ya existen; 400 si la API rechaza los datos.
+ */
+export async function registerAction(values: RegisterFormValues): Promise<ActionResult> {
+  const parsed = registerSchema.safeParse(values);
+  if (!parsed.success) {
+    return actionError(parsed.error.issues[0].message, 400);
+  }
+
+  try {
+    // confirmPassword es solo del formulario: no viaja al backend.
+    const { name, username, email, password, city, country, bio } = parsed.data;
+    await authContainer.register.execute({ name, username, email, password, city, country, bio });
+    return actionOk(undefined);
+  } catch (error) {
+    // En el 409 el backend dice cuál dato está repetido («El correo ya está
+    // registrado» / «El nombre de usuario ya está en uso»), en español: se muestra tal cual.
+    if (getErrorStatus(error) === 409 && error instanceof Error && error.message) {
+      return actionError(error.message, 409);
+    }
+    return toActionError(error);
   }
 }
 

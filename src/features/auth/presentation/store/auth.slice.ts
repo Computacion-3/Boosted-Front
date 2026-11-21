@@ -1,7 +1,8 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { getErrorMessage } from "@/src/core/errors";
-import { loginAction, logoutAction } from "../actions/auth.actions";
+import { loginAction, logoutAction, registerAction } from "../actions/auth.actions";
 import type { LoginFormValues } from "../schemas/login.schema";
+import type { RegisterFormValues } from "../schemas/register.schema";
 import type { AuthUserViewModel } from "../viewmodels/auth-user.viewmodel";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
@@ -33,6 +34,19 @@ export const login = createAppThunk(
       const result = await loginAction(values);
       if (!result.ok) return rejectWithValue(result.message);
       return result.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+/** Crea la cuenta. No cambia `user`: la persona inicia sesión después en /login. */
+export const register = createAppThunk(
+  "auth/register",
+  async (values: RegisterFormValues, { rejectWithValue }) => {
+    try {
+      const result = await registerAction(values);
+      if (!result.ok) return rejectWithValue(result.message);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error));
     }
@@ -73,6 +87,19 @@ export const authSlice = createSlice({
         state.status = "failed";
         state.user = null;
         state.errorMessage = action.payload ?? "No se pudo iniciar sesión";
+      });
+
+    builder
+      .addCase(register.pending, (state) => {
+        state.status = "loading";
+        state.errorMessage = null;
+      })
+      .addCase(register.fulfilled, (state) => {
+        state.status = "succeeded";
+      })
+      .addCase(register.rejected, (state, action) => {
+        state.status = "failed";
+        state.errorMessage = action.payload ?? "No se pudo crear la cuenta";
       });
   },
 });
