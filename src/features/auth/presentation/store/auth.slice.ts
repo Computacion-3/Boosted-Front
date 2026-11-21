@@ -1,6 +1,6 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { getErrorMessage } from "@/src/core/errors";
-import { loginAction } from "../actions/auth.actions";
+import { loginAction, logoutAction } from "../actions/auth.actions";
 import type { LoginFormValues } from "../schemas/login.schema";
 import type { AuthUserViewModel } from "../viewmodels/auth-user.viewmodel";
 
@@ -39,10 +39,22 @@ export const login = createAppThunk(
   },
 );
 
+/**
+ * Cierra sesión. No hace falta un caso `fulfilled` en este slice: src/store/store.ts
+ * escucha `auth/logout/fulfilled` y devuelve TODO el store a su estado inicial.
+ */
+export const logout = createAppThunk("auth/logout", async () => {
+  await logoutAction();
+});
+
 export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    /** Pone en Redux la sesión leída en el servidor (AuthHydrator), o null si no hay. */
+    setUser: (state, action: PayloadAction<AuthUserViewModel | null>) => {
+      state.user = action.payload;
+    },
     clearAuthError: (state) => {
       state.errorMessage = null;
     },
@@ -65,5 +77,5 @@ export const authSlice = createSlice({
   },
 });
 
-export const { clearAuthError } = authSlice.actions;
+export const { setUser, clearAuthError } = authSlice.actions;
 export const authReducer = authSlice.reducer;

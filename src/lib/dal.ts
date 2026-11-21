@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { Permission } from "@/src/core/permissions";
 import { decodeToken, SESSION_COOKIE } from "./token";
 
 /**
@@ -56,7 +57,7 @@ export async function requireSession(): Promise<Session> {
  * Exige sesión y un permiso (`recurso:acción`, por ejemplo `posts:moderate`).
  * Sin sesión redirige a /login; sin el permiso lanza un error.
  */
-export async function requirePermission(permission: string): Promise<Session> {
+export async function requirePermission(permission: Permission): Promise<Session> {
   const session = await requireSession();
 
   if (!session.permissions.includes(permission)) {
@@ -64,4 +65,18 @@ export async function requirePermission(permission: string): Promise<Session> {
   }
 
   return session;
+}
+
+/**
+ * Para PÁGINAS que exigen un permiso: exige sesión (sin sesión redirige a /login)
+ * y devuelve si la persona tiene el permiso, sin lanzar error. Así la página
+ * puede mostrar un aviso claro en vez de romperse:
+ *
+ *   if (!(await checkPermission(PERMISSIONS.USERS_READ))) return <AccessDenied />;
+ *
+ * En Server Actions se sigue usando requirePermission.
+ */
+export async function checkPermission(permission: Permission): Promise<boolean> {
+  const session = await requireSession();
+  return session.permissions.includes(permission);
 }

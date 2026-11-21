@@ -1,5 +1,5 @@
 import { getSession } from "@/src/lib/dal";
-import { Header } from "@/src/shared/components/Header";
+import { AppHeader } from "./app-header";
 import { filterNavItems, NAV_ITEMS } from "@/src/shared/components/nav-items";
 
 /**
@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <>
-      <Header user={user} navItems={navItems} />
+      <AppHeader user={user} navItems={navItems} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-6 lg:py-8">{children}</main>
     </>
   );
