@@ -1,6 +1,7 @@
 "use server";
 
 import { actionOk, toActionError, type ActionResult } from "@/src/core/errors";
+import { PERMISSIONS } from "@/src/core/permissions";
 import { requirePermission, requireSession, type Session } from "@/src/lib/dal";
 import { postsContainer } from "../../di/posts.container";
 import type { PostDraft } from "../../domain/entities/post-draft";
@@ -23,7 +24,7 @@ import type { PostFormValues } from "../viewmodels/post-form.viewmodel";
 function viewerOf(session: Session) {
   return {
     viewerId: session.userId,
-    canModerate: session.permissions.includes("posts:moderate"),
+    canModerate: session.permissions.includes(PERMISSIONS.POSTS_MODERATE),
   };
 }
 
@@ -156,7 +157,7 @@ export async function hidePostAction(
 ): Promise<ActionResult<PostViewModel>> {
   // Fuera del try/catch: redirect() lanza una excepción y el catch se la tragaría.
   // El permiso del token solo orienta a la interfaz; aquí se exige de verdad y la API vuelve a decidir.
-  const session = await requirePermission("posts:moderate");
+  const session = await requirePermission(PERMISSIONS.POSTS_MODERATE);
 
   try {
     const post = await postsContainer.hidePost.execute(id);
@@ -170,7 +171,7 @@ export async function restorePostAction(
   id: string,
 ): Promise<ActionResult<PostViewModel>> {
   // Fuera del try/catch: redirect() lanza una excepción y el catch se la tragaría.
-  const session = await requirePermission("posts:moderate");
+  const session = await requirePermission(PERMISSIONS.POSTS_MODERATE);
 
   try {
     const post = await postsContainer.restorePost.execute(id);
