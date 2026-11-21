@@ -1,5 +1,6 @@
 // Kit de componentes UI compartido por todas las features.
 // Reciben props (ViewModels y callbacks): no conocen Redux, el store ni la red.
+export { AccessDenied, type AccessDeniedProps } from "./AccessDenied";
 export { Alert, type AlertProps, type AlertVariant } from "./Alert";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./Button";
 export { Card, type CardProps } from "./Card";
