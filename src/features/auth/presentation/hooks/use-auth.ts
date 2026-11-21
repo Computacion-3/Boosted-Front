@@ -3,14 +3,22 @@
 import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
 import type { LoginFormValues } from "../schemas/login.schema";
-import { clearAuthError, login as loginThunk } from "../store/auth.slice";
+import {
+  clearAuthError,
+  login as loginThunk,
+  logout as logoutThunk,
+  register as registerThunk,
+  setUser,
+} from "../store/auth.slice";
+import type { RegisterFormValues } from "../schemas/register.schema";
+import type { AuthUserViewModel } from "../viewmodels/auth-user.viewmodel";
 
 /**
  * Hook fachada de autenticación. Los componentes no ven Redux: reciben la
  * persona, el estado de carga, el error y funciones.
  *
- * Por ahora cubre el login (#9). El #11 agrega hidratar la sesión al recargar,
- * register, logout, hasRole y hasPermission.
+ * hasRole y hasPermission solo sirven para mostrar u ocultar interfaz.
+ * Ocultar un botón no es proteger: eso lo hacen el DAL y cada Server Action.
  */
 export function useAuth() {
   const dispatch = useAppDispatch();
@@ -25,15 +33,52 @@ export function useAuth() {
     [dispatch],
   );
 
+  /** Devuelve true si creó la cuenta; si no, el mensaje queda en `errorMessage`. */
+  const register = useCallback(
+    async (values: RegisterFormValues): Promise<boolean> => {
+      const result = await dispatch(registerThunk(values));
+      return registerThunk.fulfilled.match(result);
+    },
+    [dispatch],
+  );
+
+  /** Revoca el token, borra la cookie y vacía todo el store. Quien llama decide a dónde navegar. */
+  const logout = useCallback(async (): Promise<void> => {
+    await dispatch(logoutThunk());
+  }, [dispatch]);
+
+  /** Lo usa AuthHydrator para cargar en Redux la sesión que leyó el servidor. */
+  const hydrate = useCallback(
+    (sessionUser: AuthUserViewModel | null) => {
+      dispatch(setUser(sessionUser));
+    },
+    [dispatch],
+  );
+
   const clearError = useCallback(() => {
     dispatch(clearAuthError());
   }, [dispatch]);
 
+  /** true si la persona tiene ese rol (aficionado, moderador, administrador). */
+  const hasRole = useCallback((role: string) => user?.role === role, [user]);
+
+  /** true si la persona tiene ese permiso (`recurso:acción`, por ejemplo `posts:moderate`). */
+  const hasPermission = useCallback(
+    (permission: string) => user?.permissions.includes(permission) ?? false,
+    [user],
+  );
+
   return {
     user,
+    isAuthenticated: user !== null,
     isLoading: status === "loading",
     errorMessage,
     login,
+    register,
+    logout,
+    hydrate,
     clearError,
+    hasRole,
+    hasPermission,
   };
 }

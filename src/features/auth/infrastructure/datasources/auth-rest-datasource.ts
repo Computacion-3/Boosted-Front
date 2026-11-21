@@ -1,14 +1,31 @@
 import { apiClient } from "@/src/core/http/api-client";
 import type { LoginRequestDto, LoginResponseDto } from "../dtos/login.dto";
+import type { RegisterRequestDto } from "../dtos/register.dto";
 import type { AuthDatasource } from "./auth-datasource.interface";
 
 /**
- * Autenticación por REST. El login se hace SIN sesión, por eso `auth: "none"`:
- * con el valor por defecto ("required") el cliente respondería 401 sin llamar a la API.
- * Si la API responde 401 o 403, apiClient lanza un ApiError con ese status.
+ * Autenticación por REST. Si la API responde un error, apiClient lanza un
+ * ApiError con el status (401, 403…).
  */
 export class AuthRestDatasource implements AuthDatasource {
+  /**
+   * El login se hace SIN sesión, por eso `auth: "none"`: con el valor por
+   * defecto ("required") el cliente respondería 401 sin llamar a la API.
+   */
   login(body: LoginRequestDto): Promise<LoginResponseDto> {
     return apiClient.post<LoginResponseDto>("/auth/login", body, { auth: "none" });
+  }
+
+  /** El registro también es sin sesión. La respuesta (token) no se usa: la persona inicia sesión después. */
+  async register(body: RegisterRequestDto): Promise<void> {
+    await apiClient.post("/auth/register", body, { auth: "none" });
+  }
+
+  /**
+   * El logout manda el token de la sesión (Bearer, el valor por defecto): el
+   * backend revoca justo ese token.
+   */
+  async logout(): Promise<void> {
+    await apiClient.post("/auth/logout");
   }
 }

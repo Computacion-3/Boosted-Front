@@ -1,7 +1,8 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { getErrorMessage } from "@/src/core/errors";
-import { loginAction } from "../actions/auth.actions";
+import { loginAction, logoutAction, registerAction } from "../actions/auth.actions";
 import type { LoginFormValues } from "../schemas/login.schema";
+import type { RegisterFormValues } from "../schemas/register.schema";
 import type { AuthUserViewModel } from "../viewmodels/auth-user.viewmodel";
 
 type RequestStatus = "idle" | "loading" | "succeeded" | "failed";
@@ -39,10 +40,35 @@ export const login = createAppThunk(
   },
 );
 
+/** Crea la cuenta. No cambia `user`: la persona inicia sesión después en /login. */
+export const register = createAppThunk(
+  "auth/register",
+  async (values: RegisterFormValues, { rejectWithValue }) => {
+    try {
+      const result = await registerAction(values);
+      if (!result.ok) return rejectWithValue(result.message);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  },
+);
+
+/**
+ * Cierra sesión. No hace falta un caso `fulfilled` en este slice: src/store/store.ts
+ * escucha `auth/logout/fulfilled` y devuelve TODO el store a su estado inicial.
+ */
+export const logout = createAppThunk("auth/logout", async () => {
+  await logoutAction();
+});
+
 export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    /** Pone en Redux la sesión leída en el servidor (AuthHydrator), o null si no hay. */
+    setUser: (state, action: PayloadAction<AuthUserViewModel | null>) => {
+      state.user = action.payload;
+    },
     clearAuthError: (state) => {
       state.errorMessage = null;
     },
@@ -62,8 +88,21 @@ export const authSlice = createSlice({
         state.user = null;
         state.errorMessage = action.payload ?? "No se pudo iniciar sesión";
       });
+
+    builder
+      .addCase(register.pending, (state) => {
+        state.status = "loading";
+        state.errorMessage = null;
+      })
+      .addCase(register.fulfilled, (state) => {
+        state.status = "succeeded";
+      })
+      .addCase(register.rejected, (state, action) => {
+        state.status = "failed";
+        state.errorMessage = action.payload ?? "No se pudo crear la cuenta";
+      });
   },
 });
 
-export const { clearAuthError } = authSlice.actions;
+export const { setUser, clearAuthError } = authSlice.actions;
 export const authReducer = authSlice.reducer;

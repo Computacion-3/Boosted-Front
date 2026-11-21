@@ -1,5 +1,9 @@
 import type { AuthTokens } from "../../domain/entities/auth-tokens";
-import type { AuthRepository, LoginParams } from "../../domain/repositories/auth.repository";
+import type {
+  AuthRepository,
+  LoginParams,
+  RegisterParams,
+} from "../../domain/repositories/auth.repository";
 import type { AuthDatasource } from "../datasources/auth-datasource.interface";
 import { AuthMapper } from "../mappers/auth.mapper";
 
@@ -10,5 +14,13 @@ export class AuthRepositoryImpl implements AuthRepository {
   async login(params: LoginParams): Promise<AuthTokens> {
     const dto = await this.datasource.login(AuthMapper.toLoginRequestDto(params));
     return AuthMapper.toDomain(dto);
+  }
+
+  register(params: RegisterParams): Promise<void> {
+    return this.datasource.register(AuthMapper.toRegisterRequestDto(params));
+  }
+
+  logout(): Promise<void> {
+    return this.datasource.logout();
   }
 }

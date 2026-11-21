@@ -17,13 +17,32 @@ type AuthUserSource = {
   permissions?: string[];
 };
 
+/** Lo mínimo que se necesita de la sesión del DAL (getSession) para armar el ViewModel. */
+type SessionSource = {
+  userId: string;
+  name: string;
+  role: string;
+  permissions: string[];
+};
+
 export const AuthUserViewModelMapper = {
+  /** Al iniciar sesión: datos del token recién guardado. */
   fromTokenPayload(payload: AuthUserSource): AuthUserViewModel {
     return {
       id: payload.sub,
       name: payload.name ?? "",
       role: payload.role,
       permissions: payload.permissions ?? [],
+    };
+  },
+
+  /** Al cargar o recargar la página: la sesión que el layout leyó de la cookie. */
+  fromSession(session: SessionSource): AuthUserViewModel {
+    return {
+      id: session.userId,
+      name: session.name,
+      role: session.role,
+      permissions: session.permissions,
     };
   },
 };
