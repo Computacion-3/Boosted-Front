@@ -62,12 +62,6 @@ export function RegisterForm({ onSubmit, isLoading, errorMessage, onDismissError
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-1">
       <h1 className="text-2xl font-bold">Crear cuenta</h1>
 
-      {errorMessage && (
-        <Alert variant="error" onDismiss={onDismissError}>
-          {errorMessage}
-        </Alert>
-      )}
-
       <FormField label="Nombre" autoComplete="name" required {...bind("name")} />
       <FormField
         label="Usuario"
@@ -98,6 +92,16 @@ export function RegisterForm({ onSubmit, isLoading, errorMessage, onDismissError
         <FormField label="País" autoComplete="country-name" {...bind("country")} />
       </div>
       <TextareaField label="Biografía" rows={3} hint="Opcional, hasta 500 caracteres" {...bind("bio")} />
+
+      {/*
+        El error del servidor (correo o usuario repetido…) va junto al botón y no arriba: el formulario
+        es largo y, tras enviar, la pantalla queda al final; arriba el aviso quedaría fuera de la vista.
+      */}
+      {errorMessage && (
+        <Alert variant="error" onDismiss={onDismissError} className="mt-2">
+          {errorMessage}
+        </Alert>
+      )}
 
       <Button type="submit" fullWidth isLoading={isLoading} className="mt-2">
         Crear cuenta
