@@ -16,10 +16,18 @@ export type LoginFormProps = {
   /** Error del servidor (credenciales inválidas, cuenta desactivada…). */
   errorMessage: string | null;
   onDismissError?: () => void;
+  /** Aviso de éxito arriba del formulario (por ejemplo, "Tu cuenta quedó creada"). */
+  notice?: string;
 };
 
 /** Formulario de inicio de sesión. Recibe todo por props: no conoce Redux ni la red. */
-export function LoginForm({ onSubmit, isLoading, errorMessage, onDismissError }: LoginFormProps) {
+export function LoginForm({
+  onSubmit,
+  isLoading,
+  errorMessage,
+  onDismissError,
+  notice,
+}: LoginFormProps) {
   const [values, setValues] = useState<LoginFormValues>({ email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
 
@@ -43,6 +51,8 @@ export function LoginForm({ onSubmit, isLoading, errorMessage, onDismissError }:
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-2">
       <h1 className="text-2xl font-bold">Iniciar sesión</h1>
+
+      {notice && !errorMessage && <Alert variant="success">{notice}</Alert>}
 
       {errorMessage && (
         <Alert variant="error" onDismiss={onDismissError}>

@@ -6,7 +6,7 @@ import { useAuth } from "@/src/features/auth/presentation/hooks/use-auth";
 import type { LoginFormValues } from "@/src/features/auth/presentation/schemas/login.schema";
 import { HOME_ROUTE } from "@/src/lib/routes";
 
-export function LoginView() {
+export function LoginView({ justRegistered = false }: { justRegistered?: boolean }) {
   const router = useRouter();
   const { login, isLoading, errorMessage, clearError } = useAuth();
 
@@ -27,6 +27,7 @@ export function LoginView() {
       isLoading={isLoading}
       errorMessage={errorMessage}
       onDismissError={clearError}
+      notice={justRegistered ? "Tu cuenta quedó creada. Ya puedes iniciar sesión." : undefined}
     />
   );
 }

@@ -1,5 +1,6 @@
 import { apiClient } from "@/src/core/http/api-client";
 import type { LoginRequestDto, LoginResponseDto } from "../dtos/login.dto";
+import type { RegisterRequestDto } from "../dtos/register.dto";
 import type { AuthDatasource } from "./auth-datasource.interface";
 
 /**
@@ -13,6 +14,11 @@ export class AuthRestDatasource implements AuthDatasource {
    */
   login(body: LoginRequestDto): Promise<LoginResponseDto> {
     return apiClient.post<LoginResponseDto>("/auth/login", body, { auth: "none" });
+  }
+
+  /** El registro también es sin sesión. La respuesta (token) no se usa: la persona inicia sesión después. */
+  async register(body: RegisterRequestDto): Promise<void> {
+    await apiClient.post("/auth/register", body, { auth: "none" });
   }
 
   /**
