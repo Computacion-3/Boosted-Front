@@ -24,10 +24,14 @@ export function useEvents() {
     (state) => state.events.list,
   );
 
+  // La carga necesita una sesión: al cerrar sesión el store vuelve a `idle` con la cookie ya
+  // borrada, y recargar entonces dejaría el listado en `failed` en vez de vacío.
+  const isSignedIn = useAppSelector((state) => state.auth.user !== null);
+
   // Primera carga (y recarga cuando otra pantalla deja el listado en "idle").
   useEffect(() => {
-    if (status === "idle") dispatch(fetchEvents(query));
-  }, [dispatch, status, query]);
+    if (isSignedIn && status === "idle") dispatch(fetchEvents(query));
+  }, [dispatch, isSignedIn, status, query]);
 
   /** Cambiar filtros vuelve a la página 1. */
   const applyFilters = useCallback(

@@ -20,10 +20,14 @@ export function useUsers() {
     (state) => state.users,
   );
 
+  // La carga necesita una sesión: al cerrar sesión el store vuelve a `idle` con la cookie ya
+  // borrada, y recargar entonces dejaría el slice en `failed` en vez de vacío.
+  const isSignedIn = useAppSelector((state) => state.auth.user !== null);
+
   // Primera carga.
   useEffect(() => {
-    if (status === "idle") dispatch(fetchUsers(query));
-  }, [dispatch, status, query]);
+    if (isSignedIn && status === "idle") dispatch(fetchUsers(query));
+  }, [dispatch, isSignedIn, status, query]);
 
   /** Buscar vuelve a la página 1. */
   const search = useCallback(
