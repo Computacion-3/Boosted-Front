@@ -18,10 +18,14 @@ export function usePosts() {
   // Selectores separados: el feed no se vuelve a renderizar por cambios ajenos.
   const likingIds = useAppSelector((state) => state.posts.likingIds);
 
+  // La carga necesita una sesión: al cerrar sesión el store vuelve a `idle` con la cookie ya
+  // borrada, y recargar entonces dejaría la lista en `failed` en vez de vacía.
+  const isSignedIn = useAppSelector((state) => state.auth.user !== null);
+
   // Primera carga: solo con el estado en "idle", así una lista vacía no dispara otra consulta.
   useEffect(() => {
-    if (status === "idle") dispatch(fetchPosts(query));
-  }, [dispatch, status, query]);
+    if (isSignedIn && status === "idle") dispatch(fetchPosts(query));
+  }, [dispatch, isSignedIn, status, query]);
 
   // Se memoriza para que los componentes vean el mismo objeto mientras los filtros no cambien.
   const filters = useMemo<PostFilters>(
