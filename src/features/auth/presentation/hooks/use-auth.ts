@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import type { Permission } from "@/src/core/permissions";
 import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
 import type { LoginFormValues } from "../schemas/login.schema";
 import {
@@ -51,9 +52,9 @@ export function useAuth() {
   /** true si la persona tiene ese rol (aficionado, moderador, administrador). */
   const hasRole = useCallback((role: string) => user?.role === role, [user]);
 
-  /** true si la persona tiene ese permiso (`recurso:acción`, por ejemplo `posts:moderate`). */
+  /** true si la persona tiene ese permiso (`recurso:acción`; usa las constantes de PERMISSIONS). */
   const hasPermission = useCallback(
-    (permission: string) => user?.permissions.includes(permission) ?? false,
+    (permission: Permission) => user?.permissions.includes(permission) ?? false,
     [user],
   );
 

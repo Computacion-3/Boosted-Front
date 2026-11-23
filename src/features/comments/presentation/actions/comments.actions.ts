@@ -1,6 +1,7 @@
 "use server";
 
 import { actionOk, toActionError, type ActionResult } from "@/src/core/errors";
+import { PERMISSIONS } from "@/src/core/permissions";
 import { requireSession, type Session } from "@/src/lib/dal";
 import { commentsContainer } from "../../di/comments.container";
 import {
@@ -19,7 +20,7 @@ import {
 function viewerOf(session: Session) {
   return {
     viewerId: session.userId,
-    canModerate: session.permissions.includes("posts:moderate"),
+    canModerate: session.permissions.includes(PERMISSIONS.POSTS_MODERATE),
   };
 }
 
