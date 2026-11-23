@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { HOME_ROUTE } from "@/src/lib/routes";
 
 export type AccessDeniedProps = {
   /** Explicación corta de qué se intentó abrir. */
   message?: string;
-  /** A dónde lleva el botón para volver. */
+  /** A dónde lleva el botón para volver (por defecto, la home privada, que sí tiene el Header). */
   backHref?: string;
 };
 
@@ -14,7 +15,7 @@ export type AccessDeniedProps = {
  */
 export function AccessDenied({
   message = "Tu cuenta no tiene permiso para ver esta sección.",
-  backHref = "/",
+  backHref = HOME_ROUTE,
 }: AccessDeniedProps) {
   return (
     <section className="hero py-10" role="alert">
