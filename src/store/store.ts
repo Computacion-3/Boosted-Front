@@ -3,6 +3,8 @@ import { authReducer, logout } from "@/src/features/auth/presentation/store/auth
 import { commentsReducer } from "@/src/features/comments/presentation/store/comments.slice";
 import { eventsReducer } from "@/src/features/events/presentation/store/events.slice";
 import { postsReducer } from "@/src/features/posts/presentation/store/posts.slice";
+import { rolesReducer } from "@/src/features/roles/presentation/store/roles.slice";
+import { usersReducer } from "@/src/features/users/presentation/store/users.slice";
 
 /**
  * Cómo registrar el reducer de una feature:
@@ -25,6 +27,8 @@ const appReducer = combineReducers({
   comments: commentsReducer,
   events: eventsReducer,
   posts: postsReducer,
+  roles: rolesReducer,
+  users: usersReducer,
 });
 
 /**
