@@ -7,32 +7,16 @@ import { HidePostUseCase } from "../domain/usecases/hide-post.usecase";
 import { RestorePostUseCase } from "../domain/usecases/restore-post.usecase";
 import { TogglePostLikeUseCase } from "../domain/usecases/toggle-post-like.usecase";
 import { UpdatePostUseCase } from "../domain/usecases/update-post.usecase";
-import type { PostDatasource } from "../infrastructure/datasources/post-datasource.interface";
 import { PostRestDatasource } from "../infrastructure/datasources/post-rest-datasource";
 import { PostRepositoryImpl } from "../infrastructure/repositories/post.repository.impl";
 
 /**
  * Raíz de composición de publicaciones: el único archivo que conoce las clases concretas.
- * NEXT_PUBLIC_DATA_SOURCE elige la fuente de datos y nada más cambia (ni casos de uso,
- * ni entidades, ni slice, ni componentes).
+ * Publicaciones solo habla REST. NEXT_PUBLIC_DATA_SOURCE cambia únicamente el módulo dual
+ * (eventos), así que aquí se ignora: con `graphql` el resto de la app sigue funcionando.
+ * Si algún día publicaciones tiene GraphQL, se agrega aquí el mismo `switch` de eventos.
  */
-function createPostDatasource(): PostDatasource {
-  const source = process.env.NEXT_PUBLIC_DATA_SOURCE ?? "rest";
-
-  switch (source) {
-    case "rest":
-      return new PostRestDatasource();
-    // Cuando el backend exponga publicaciones por GraphQL: crear
-    // `infrastructure/datasources/post-graphql-datasource.ts` (implementa PostDatasource y
-    // devuelve los mismos DTO) y agregar aquí `case "graphql": return new PostGraphQLDatasource();`.
-    default:
-      throw new Error(
-        `NEXT_PUBLIC_DATA_SOURCE="${source}" todavía no está soportado en publicaciones. Usa "rest".`,
-      );
-  }
-}
-
-const repository = new PostRepositoryImpl(createPostDatasource());
+const repository = new PostRepositoryImpl(new PostRestDatasource());
 
 export const postsContainer = {
   getPosts: new GetPostsUseCase(repository),
