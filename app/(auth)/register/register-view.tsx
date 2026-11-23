@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { RegisterForm } from "@/src/features/auth/presentation/components/RegisterForm";
 import { useAuth } from "@/src/features/auth/presentation/hooks/use-auth";
@@ -9,6 +10,12 @@ import { LOGIN_ROUTE } from "@/src/lib/routes";
 export function RegisterView() {
   const router = useRouter();
   const { register, isLoading, errorMessage, clearError } = useAuth();
+
+  // El error vive en el store y el store sobrevive a la navegación entre /login y /register:
+  // sin esto, el error del otro formulario aparecería aquí sin haber enviado nada.
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   const handleSubmit = async (values: RegisterFormValues) => {
     const ok = await register(values);
