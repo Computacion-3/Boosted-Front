@@ -11,9 +11,13 @@ export function useRoles() {
     (state) => state.roles,
   );
 
+  // La carga necesita una sesión: al cerrar sesión el store vuelve a `idle` con la cookie ya
+  // borrada, y recargar entonces dejaría el slice en `failed` en vez de vacío.
+  const isSignedIn = useAppSelector((state) => state.auth.user !== null);
+
   useEffect(() => {
-    if (status === "idle") dispatch(fetchRolesOverview());
-  }, [dispatch, status]);
+    if (isSignedIn && status === "idle") dispatch(fetchRolesOverview());
+  }, [dispatch, isSignedIn, status]);
 
   const reload = useCallback(() => {
     dispatch(fetchRolesOverview());
