@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { NavItem } from "./nav-items";
 import { Navbar } from "./Navbar";
 import { UserMenu, type HeaderUser } from "./UserMenu";
@@ -12,13 +12,15 @@ export type HeaderProps = {
   /** Enlaces ya filtrados por permiso (ver filterNavItems). */
   navItems: NavItem[];
   onLogout?: () => void;
+  /** Se muestra junto al menú de usuario, solo cuando hay sesión. El Header no sabe qué es. */
+  notificationsSlot?: ReactNode;
 };
 
 /**
  * Barra superior. Mobile-first: en pantallas pequeñas los enlaces van en un menú
  * desplegable (botón hamburguesa); desde `lg` se muestran en línea.
  */
-export function Header({ user, navItems, onLogout }: HeaderProps) {
+export function Header({ user, navItems, onLogout, notificationsSlot }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -56,7 +58,10 @@ export function Header({ user, navItems, onLogout }: HeaderProps) {
 
         <div className="navbar-end">
           {user ? (
-            <UserMenu user={user} onLogout={onLogout} />
+            <div className="flex items-center gap-1">
+              {notificationsSlot}
+              <UserMenu user={user} onLogout={onLogout} />
+            </div>
           ) : (
             <Link href="/login" className="btn btn-primary btn-sm">
               Iniciar sesión
