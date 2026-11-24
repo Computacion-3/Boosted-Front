@@ -3,15 +3,22 @@
  * de entorno (.env.local en tu máquina, secretos en CI). Ver .env.example.
  */
 
-export type E2ERole = "aficionado";
+export type E2ERole = "aficionado" | "moderador" | "administrador";
+
+/** Roles con los que inicia sesión e2e/auth.setup.ts. */
+export const E2E_ROLES: E2ERole[] = ["aficionado", "moderador", "administrador"];
 
 /** Dónde se guarda la sesión de cada cuenta. La carpeta e2e/.auth está en .gitignore. */
 export const STORAGE_STATE: Record<E2ERole, string> = {
   aficionado: "e2e/.auth/aficionado.json",
+  moderador: "e2e/.auth/moderador.json",
+  administrador: "e2e/.auth/administrador.json",
 };
 
 const ENV_PREFIX: Record<E2ERole, string> = {
   aficionado: "E2E_AFICIONADO",
+  moderador: "E2E_MODERADOR",
+  administrador: "E2E_ADMIN",
 };
 
 export interface E2EAccount {
