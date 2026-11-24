@@ -6,13 +6,13 @@ import {
   toggleLike,
   type ApiSession,
 } from "../support/api";
+import { getAccount } from "../support/accounts";
 import { loginThroughUi } from "../support/auth";
 
-// Tiempo real (issue #40). Dos cuentas distintas:
-//  - la AUTORA, que mira la app en el navegador y recibe los avisos;
-//  - la OTRA PERSONA, que da like y comenta por la API mientras la autora mira.
-// Credenciales: variables CYPRESS_AUTHOR_EMAIL / _PASSWORD y CYPRESS_ACTOR_EMAIL / _PASSWORD
-// (o `cypress.env.json`, que no se sube al repositorio). Ver la sección de E2E del README.
+// Tiempo real (issue #40). Dos cuentas distintas, las mismas de los demás casos E2E:
+//  - la AUTORA (aficionado), que mira la app en el navegador y recibe los avisos;
+//  - la OTRA PERSONA (moderador), que da like y comenta por la API mientras la autora mira.
+// Credenciales: E2E_AFICIONADO_* y E2E_MODERADOR_* en `.env.local`. Ver la sección de E2E del README.
 describe("Notificaciones en tiempo real", () => {
   let authorCredentials: { email: string; password: string };
   let author: ApiSession; // token propio de la prueba, distinto del que usa el navegador
@@ -24,12 +24,12 @@ describe("Notificaciones en tiempo real", () => {
   const panel = () => cy.contains("section", "Notificaciones");
 
   before(() => {
-    cy.env(["AUTHOR_EMAIL", "AUTHOR_PASSWORD", "ACTOR_EMAIL", "ACTOR_PASSWORD"]).then((env) => {
-      authorCredentials = { email: env.AUTHOR_EMAIL, password: env.AUTHOR_PASSWORD };
-      apiLogin(authorCredentials).then((session) => (author = session));
-      apiLogin({ email: env.ACTOR_EMAIL, password: env.ACTOR_PASSWORD }).then(
-        (session) => (actor = session),
-      );
+    getAccount("aficionado").then((credentials) => {
+      authorCredentials = credentials;
+      apiLogin(credentials).then((session) => (author = session));
+    });
+    getAccount("moderador").then((credentials) => {
+      apiLogin(credentials).then((session) => (actor = session));
     });
     // Dos inicios de sesión de la misma cuenta dentro del mismo segundo dan el mismo token. Como
     // "Cerrar sesión" revoca el token, esperar evita que la última prueba invalide el de `author`.

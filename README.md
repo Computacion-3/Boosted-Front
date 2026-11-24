@@ -21,16 +21,16 @@ Consume la API de [Boosted](https://github.com/Computacion-3/Boosted) (NestJS + 
 1. [Estado del proyecto](#estado-del-proyecto)
 2. [Tecnologías](#tecnologías)
 3. [Arranque rápido](#arranque-rápido)
-4. [Arquitectura](#arquitectura)
-5. [Módulo dual REST y GraphQL](#módulo-dual-rest-y-graphql)
-6. [Pruebas E2E con Cypress](#pruebas-e2e-con-cypress)
+4. [Pruebas end-to-end](#pruebas-end-to-end)
+5. [Arquitectura](#arquitectura)
+6. [Módulo dual REST y GraphQL](#módulo-dual-rest-y-graphql)
 7. [Despliegue](#despliegue)
 8. [Flujo de trabajo y calidad](#flujo-de-trabajo-y-calidad)
 9. [Autores y contexto académico](#autores-y-contexto-académico)
 
 ## Estado del proyecto
 
-Situación al 23 de noviembre de 2026.
+Situación al 24 de noviembre de 2026.
 
 ### Lo que funciona hoy
 
@@ -39,13 +39,14 @@ Situación al 23 de noviembre de 2026.
 | Registro e inicio de sesión | `/register`, `/login` | Validación con mensajes por campo, cookie de sesión `httpOnly` y cierre de sesión desde el menú de usuario. |
 | Comunidad | `/posts`, `/posts/new`, `/posts/[id]`, `/posts/[id]/edit` | Publicaciones de 8 tipos, filtros, paginación, likes optimistas, comentarios (crear, editar, eliminar) y moderación (ocultar y restaurar) con el permiso `posts:moderate`. |
 | Eventos | `/events`, `/events/new`, `/events/[id]`, `/events/[id]/edit` | Listado con filtros por ciudad, tipo y fechas, paginación y CRUD completo. Es el módulo dual REST y GraphQL. |
+| Perfil | `/profile` | Ver y editar el perfil propio (nombre, usuario, biografía, ciudad, país y foto por URL). El correo y la contraseña no se editan aquí. |
 | Administración | `/admin/users`, `/admin/roles` | Buscar usuarios, cambiar su rol y su estado, y ver y editar los permisos de cada rol. |
 | Notificaciones en tiempo real | Campana del Header | Aviso al autor de una publicación cuando alguien le da like o la comenta, sin recargar la página. |
 
 ### Pendiente
 
-- **Garaje y bitácora:** vehículos, modificaciones, bitácora de proyecto y resumen de inversión (issues #16 a #21), y el perfil (#15). Mientras no existan, el enlace «Garaje» del menú y «Mi perfil» del menú de usuario no llevan a ninguna pantalla.
-- **Más pruebas E2E.** La suite de Cypress ya cubre las notificaciones en tiempo real (ver [Pruebas E2E](#pruebas-e2e-con-cypress)); faltan registro, inicio y cierre de sesión (#31) y el control de acceso por permisos (#32). El resto se verifica con `typecheck`, `lint`, `build` y pruebas manuales descritas en cada pull request.
+- **Garaje y bitácora:** vehículos, modificaciones, bitácora de proyecto y resumen de inversión (issues #16 a #21). Mientras no existan, el enlace «Garaje» del menú no lleva a ninguna pantalla.
+- **Más pruebas E2E:** ya hay pruebas de humo, de control de acceso por rol y de notificaciones en tiempo real (ver [Pruebas end-to-end](#pruebas-end-to-end)); faltan las de registro, inicio y cierre de sesión (#31). El resto se verifica con `typecheck`, `lint`, `build` y pruebas manuales descritas en cada pull request.
 - **Despliegue del frontend en Vercel** y el flujo de integración continua.
 - **Portada** (`/`): sigue siendo una pantalla provisional.
 
@@ -61,7 +62,7 @@ Situación al 23 de noviembre de 2026.
 | Zod | 4.6 | Validación de formularios |
 | socket.io-client | 4.8 | Notificaciones en tiempo real |
 | jwt-decode | 4.0 | Leer (no verificar) el token en el servidor |
-| Cypress | 16.3 | Pruebas E2E |
+| Cypress | 16.3 | Pruebas end-to-end |
 | ESLint | 9 | Calidad de código |
 
 ## Arranque rápido
@@ -121,6 +122,8 @@ El seed del backend crea un administrador, un moderador y dos aficionados. Los c
 | `NEXT_PUBLIC_DATA_SOURCE` | `rest` o `graphql` | Fuente de datos del módulo dual (eventos). Si falta, usa `rest`. |
 | `NEXT_PUBLIC_WS_URL` | URL del servidor WebSocket | Normalmente igual a `API_URL`. Es obligatoria para las notificaciones: sin ella la campana avisa que no está configurada. |
 
+Las pruebas E2E usan además sus propias variables `E2E_*` (ver [Pruebas end-to-end](#pruebas-end-to-end)).
+
 Next incrusta las variables `NEXT_PUBLIC_*` al construir. Si cambias una, hay que volver a ejecutar `npm run build` (o reiniciar `npm run dev`).
 
 ### Comandos
@@ -133,9 +136,65 @@ Next incrusta las variables `NEXT_PUBLIC_*` al construir. Si cambias una, hay qu
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Chequeo de tipos (`next typegen` y `tsc --noEmit`) |
 | `npm run lint:clean` | Linter de Clean Architecture del equipo (ver [Calidad](#flujo-de-trabajo-y-calidad)) |
-| `npm run test:e2e` | Pruebas E2E de Cypress en consola (ver [Pruebas E2E](#pruebas-e2e-con-cypress)) |
-| `npm run test:e2e:ui` | Las mismas pruebas con la interfaz de Cypress |
+| `npm run test:e2e` | Pruebas end-to-end con Cypress en la terminal (ver [Pruebas end-to-end](#pruebas-end-to-end)) |
+| `npm run test:e2e:ui` | Las mismas pruebas en la interfaz de Cypress, para verlas paso a paso |
 | `npm run typecheck:e2e` | Chequeo de tipos de la carpeta `cypress/` (aparte, porque `tsconfig.json` la excluye) |
+
+## Pruebas end-to-end
+
+Las pruebas E2E usan **Cypress**, como pide el enunciado del proyecto final. Abren un navegador real, navegan por la aplicación como una persona y hablan con una API de verdad.
+
+### Qué necesita
+
+1. El front en marcha en el puerto 3001 (`npm run dev`, o `npm run build` y `npm run start -- -p 3001`) y apuntando a una API. Cypress no lo levanta.
+2. **Tres cuentas** de esa API, una por rol. Con el seed sirven las del [README del backend](https://github.com/Computacion-3/Boosted#readme) (sección 9).
+3. Las credenciales, **sin subirlas al repositorio**. Ponlas en `.env.local` (solo los nombres están en `.env.example`), o copia `cypress.env.example.json` a `cypress.env.json` (está ignorado por Git), o define variables `CYPRESS_AFICIONADO_EMAIL`, etc.
+
+| Variable | Para qué |
+| --- | --- |
+| `E2E_AFICIONADO_EMAIL`, `E2E_AFICIONADO_PASSWORD` | Cuenta sin permisos. También es la *autora* que recibe los avisos de las notificaciones |
+| `E2E_MODERADOR_EMAIL`, `E2E_MODERADOR_PASSWORD` | Cuenta con `posts:moderate`. También es la *otra persona* que da like y comenta |
+| `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD` | Cuenta con todos los permisos |
+| `E2E_BASE_URL` | Opcional. URL del front; por defecto `http://localhost:3001` |
+| `E2E_API_URL` | Opcional. API a la que habla la prueba; por defecto `http://localhost:3000`. Debe ser la misma que usa el front (`API_URL`) |
+
+### Ejecutar
+
+```bash
+npm run test:e2e         # todas, en la terminal
+npm run test:e2e:ui      # con la interfaz de Cypress
+npm run typecheck:e2e    # tipos de la carpeta cypress/ (aparte, porque tsconfig.json la excluye)
+```
+
+Contra el backend de Render, en PowerShell (el primer arranque en frío puede tardar cerca de un minuto):
+
+```powershell
+$env:E2E_API_URL = "https://boosted-api.onrender.com"
+npm run test:e2e
+```
+
+### Cómo están organizadas
+
+```text
+cypress.config.ts           carga .env.local, la dirección del front y de la API y las credenciales
+cypress/
+  support/accounts.ts       cuentas por rol (desde E2E_*)
+  support/auth.ts           inicio de sesión por la interfaz, reutilizado con cy.session
+  support/api.ts            llamadas directas a la API: iniciar sesión, crear y borrar publicaciones, like, comentar
+  e2e/smoke.cy.ts           la app arranca, habla con la API y la sesión sirve
+  e2e/access-control.cy.ts  qué ve y qué no ve cada rol
+  e2e/notifications.cy.ts   avisos en tiempo real
+```
+
+- **La sesión se reutiliza.** Cada caso inicia sesión por el formulario de `/login` (así la cookie `httpOnly` la crea la Server Action del propio front) y `cy.session` la restaura sin repetir el formulario.
+- **Control de acceso** (`access-control.cy.ts`): sin sesión, las rutas privadas redirigen a `/login`; el aficionado no ve los enlaces de administración ni las acciones de moderación y en `/admin/users` y `/admin/roles` ve el aviso «Error 403»; el moderador sí ve las acciones de moderación pero no entra a usuarios; el administrador entra a la gestión de usuarios desde el menú.
+- **Notificaciones** (`notifications.cy.ts`, seis casos): la campana conectada y vacía, el contador y el aviso flotante tras un like, la lista y su enlace tras un comentario, «Marcar como leídas», lo que **no** debe avisar (el like propio y quitar un like) y la desaparición de la campana al cerrar sesión.
+  - La otra persona actúa con `cy.request` directo a la API; el navegador no participa.
+  - Cada caso crea su propia publicación y la borra al terminar, así que los likes (que son un interruptor) no se mezclan entre casos.
+  - Los avisos **no se guardan**: quien no esté conectado cuando ocurre algo no lo recibe. Por eso cada caso espera a que la campana tenga `data-connection="connected"` antes de que la otra persona actúe, en lugar de dormir un tiempo fijo.
+  - Cerrar sesión revoca el token del navegador, así que ese caso va al final del archivo. La prueba espera poco más de un segundo antes de abrir la sesión del navegador para que su token no sea idéntico al que usa para limpiar.
+
+Estas pruebas revisan lo que muestra la interfaz. No reemplazan la protección real, que está en el backend y en las tres puertas descritas en [Control de acceso por permisos](#control-de-acceso-por-permisos).
 
 ## Arquitectura
 
@@ -184,6 +243,7 @@ Reglas que se cumplen en todo el código:
 | `users` | listar (con búsqueda y paginación), cambiar rol, cambiar estado | REST |
 | `roles` | ver roles y permisos, actualizar los permisos de un rol | REST |
 | `notifications` | conectar, desconectar | WebSocket |
+| `profile` | ver mi perfil, editar mi perfil (`GET` y `PATCH /users/me`) | REST |
 
 ### Sesión con cookie httpOnly
 
@@ -206,7 +266,7 @@ Ocultar un botón con `hasPermission` o el componente `Can` solo orienta la inte
 
 ### Estado global
 
-Un único store de Redux Toolkit con un slice por funcionalidad (`auth`, `posts`, `comments`, `events`, `users`, `roles`, `notifications`). Los componentes no tocan el store: usan hooks fachada que encapsulan el `dispatch` y los selectores. Al cerrar sesión se vacían todos los slices, así no queda en memoria nada de la persona anterior.
+Un único store de Redux Toolkit con un slice por funcionalidad (`auth`, `posts`, `comments`, `events`, `profile`, `users`, `roles`, `notifications`). Los componentes no tocan el store: usan hooks fachada que encapsulan el `dispatch` y los selectores. Al cerrar sesión se vacían todos los slices, así no queda en memoria nada de la persona anterior.
 
 ### Tiempo real
 
@@ -273,45 +333,6 @@ Una trampa real: en GraphQL **no** se debe leer `extensions.code` para saber el 
 
 Para este módulo, un recurso plano cuyas pantallas usan casi todos los campos, **no hay diferencia práctica de rendimiento**: la latencia (unos 188 ms) la domina la red, no el protocolo. La ventaja medible de GraphQL es pedir menos campos (el listado baja a la mitad cuando la pantalla solo necesita los de la tarjeta), aunque con compresión la diferencia real en la red es menor que la de la tabla. A cambio cuesta más código y pierde la caché HTTP y los estados HTTP. Por eso `rest` es la fuente por defecto y `graphql` queda disponible como alternativa demostrada: elegir una u otra es una variable de entorno, no una reescritura.
 
-## Pruebas E2E con Cypress
-
-La suite está en `cypress/e2e/`. Hoy tiene una prueba, `notifications.cy.ts`, con seis casos del tiempo real: la campana conectada y vacía, el contador y el aviso flotante tras un like, la lista y su enlace tras un comentario, «Marcar como leídas», lo que **no** debe avisar (el like propio y quitar un like) y la desaparición de la campana al cerrar sesión.
-
-### Qué necesita
-
-1. El front en marcha (`npm run dev`, o `npm run build` y `npm run start -- -p 3001`) y apuntando a una API.
-2. **Dos cuentas distintas** de esa API, por ejemplo dos aficionados del seed (sus datos están en la sección 9 del [README del backend](https://github.com/Computacion-3/Boosted#readme)). La *autora* mira la app en el navegador y recibe los avisos; la *otra persona* da like y comenta por la API mientras la autora mira.
-3. Las credenciales, **sin subirlas al repositorio**. Copia `cypress.env.example.json` a `cypress.env.json` (está ignorado por Git) y rellénalo, o define las variables de entorno:
-
-| Variable | Qué es |
-| --- | --- |
-| `CYPRESS_AUTHOR_EMAIL`, `CYPRESS_AUTHOR_PASSWORD` | Cuenta que mira la app y recibe los avisos |
-| `CYPRESS_ACTOR_EMAIL`, `CYPRESS_ACTOR_PASSWORD` | Cuenta que da like y comenta |
-| `E2E_API_URL` | API a la que habla la prueba. Por defecto `http://localhost:3000`; debe ser la misma que usa el front (`API_URL`) |
-| `CYPRESS_BASE_URL` | Dirección del front. Por defecto `http://localhost:3001` |
-
-### Ejecutar
-
-```bash
-npm run test:e2e        # en consola
-npm run test:e2e:ui     # con la interfaz de Cypress
-```
-
-Contra el backend de Render, en PowerShell (el primer arranque en frío puede tardar cerca de un minuto):
-
-```powershell
-$env:E2E_API_URL = "https://boosted-api.onrender.com"
-npm run test:e2e
-```
-
-### Cómo funciona
-
-- La autora inicia sesión por el formulario (así la cookie `httpOnly` la crea la Server Action del propio front) y `cy.session` la reutiliza entre casos.
-- La otra persona actúa con `cy.request` directo a la API; el navegador no participa.
-- Cada caso crea su propia publicación y la borra al terminar, así que los likes (que son un interruptor) no se mezclan entre casos.
-- Los avisos **no se guardan**: quien no esté conectado cuando ocurre algo no lo recibe. Por eso cada caso espera a que la campana tenga `data-connection="connected"` antes de que la otra persona actúe, en lugar de dormir un tiempo fijo.
-- Cerrar sesión revoca el token del navegador, así que ese caso va al final del archivo. La prueba espera poco más de un segundo antes de abrir la sesión del navegador para que su token no sea idéntico al que usa para limpiar.
-
 ## Despliegue
 
 ### Backend
@@ -340,7 +361,7 @@ No hay problemas de CORS: las peticiones HTTP las hace el servidor de Next, el b
 - **Ramas:** `main` (estable), `develop` (integración y destino de los pull requests) y `feature/*`, `fix/*`, `chore/*` o `docs/*` desde `develop`.
 - **Commits:** Conventional Commits en inglés (`feat(auth): add login form`), pequeños y frecuentes. El historial de cada persona es evidencia de su participación.
 - **Pull requests:** hacia `develop`, con revisión de otra persona del equipo. Cada uno referencia su issue.
-- **Antes de abrir un pull request:** `npm run typecheck`, `npm run lint` y `npm run build` sin errores.
+- **Antes de abrir un pull request:** `npm run typecheck`, `npm run lint` y `npm run build` sin errores, y `npm run test:e2e` si el cambio toca rutas, la sesión o los permisos.
 - **`npm run lint:clean`** audita las dependencias entre capas. Necesita la skill `clean-arch-redux`, que se copia a `.claude/skills/` y no se versiona. Hoy marca 6 errores y 8 avisos que son falsos positivos conocidos: la skill es anterior a las Server Actions y espera que el slice importe el contenedor directamente, mientras que aquí el contenedor es `server-only` y lo usan las acciones (`presentation/actions`) y no el slice. El detalle está en [`AGENTS.md`](./AGENTS.md).
 - **Convenciones de arquitectura y de trabajo:** [`AGENTS.md`](./AGENTS.md).
 

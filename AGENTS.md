@@ -23,7 +23,7 @@ Frontend de **BOOSTED**, una plataforma para aficionados a los carros: garaje di
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 + daisyUI 5 · Redux Toolkit + react-redux · `jwt-decode`, `zod` y `server-only` para la sesión. Es la misma base que la solución de referencia del curso (repo `Kelocoes/compunet3-202602`, rama `week-15/next-testing-deploy`).
 
-- **E2E:** Cypress, como pide el enunciado del proyecto final (auth, control de acceso y tiempo real). La carpeta `cypress/` tiene su propio `tsconfig.json` y el `tsconfig.json` raíz la excluye; se chequea con `npm run typecheck:e2e`. Las credenciales de las pruebas no se versionan (`cypress.env.json` está ignorado); ver «Pruebas E2E con Cypress» en el README.
+- **E2E:** Cypress, como pide el enunciado del proyecto final (auth, control de acceso y tiempo real). La carpeta `cypress/` tiene su propio `tsconfig.json` y el `tsconfig.json` raíz la excluye; se chequea con `npm run typecheck:e2e`. Las credenciales de las pruebas no se versionan (`cypress.env.json` está ignorado); ver «Pruebas end-to-end» en el README.
 - **WebSocket:** `socket.io-client`, en `src/features/notifications/`.
 - **GraphQL:** cliente en `src/core/graphql/` (la contraparte de `src/core/http/` para el datasource GraphQL de `events`).
 - **Alias de imports:** `@/*` → `./*` (los imports son `@/src/...`). `app/` y `proxy.ts` van en la **raíz** del repo; todo lo demás, en `src/`.
@@ -38,7 +38,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 + daisyUI 5 
 | `npm run lint` | ESLint |
 | `npm run lint:clean` | Linter de Clean Architecture del proyecto (ver abajo) |
 | `npm run arch:inventory` | Inventario de entidades, casos de uso, datasources y slices existentes |
-| `npm run test:e2e` / `npm run test:e2e:ui` | Pruebas E2E de Cypress (en consola / con interfaz). Necesitan el front en marcha, una API y dos cuentas de prueba; ver el README |
+| `npm run test:e2e` / `npm run test:e2e:ui` | Pruebas E2E de Cypress (en consola / con interfaz). Necesitan el front en marcha, una API y tres cuentas de prueba (una por rol); ver el README |
 | `npm run typecheck:e2e` | Chequeo de tipos de `cypress/` (el `tsconfig.json` raíz la excluye) |
 | `npm run typecheck` | Chequeo de tipos. Corre antes `next typegen`: sin eso, en un clon limpio `tsc` falla con `Cannot find name 'LayoutProps'`, porque Next genera ese tipo en `.next/types` |
 
