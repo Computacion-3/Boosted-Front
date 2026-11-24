@@ -23,7 +23,7 @@ Frontend de **BOOSTED**, una plataforma para aficionados a los carros: garaje di
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 + daisyUI 5 · Redux Toolkit + react-redux · `jwt-decode`, `zod` y `server-only` para la sesión. Es la misma base que la solución de referencia del curso (repo `Kelocoes/compunet3-202602`, rama `week-15/next-testing-deploy`).
 
-- **E2E:** Playwright por ahora, como en el curso. El PDF del taller menciona Cypress; pendiente de confirmar con el profe.
+- **E2E:** Cypress, como pide el enunciado del proyecto final (auth, control de acceso y tiempo real). La carpeta `cypress/` tiene su propio `tsconfig.json` y el `tsconfig.json` raíz la excluye; se chequea con `npm run typecheck:e2e`. Las credenciales de las pruebas no se versionan (`cypress.env.json` está ignorado); ver «Pruebas E2E con Cypress» en el README.
 - **WebSocket:** `socket.io-client`, en `src/features/notifications/`.
 - **GraphQL:** cliente en `src/core/graphql/` (la contraparte de `src/core/http/` para el datasource GraphQL de `events`).
 - **Alias de imports:** `@/*` → `./*` (los imports son `@/src/...`). `app/` y `proxy.ts` van en la **raíz** del repo; todo lo demás, en `src/`.
@@ -38,6 +38,8 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 + daisyUI 5 
 | `npm run lint` | ESLint |
 | `npm run lint:clean` | Linter de Clean Architecture del proyecto (ver abajo) |
 | `npm run arch:inventory` | Inventario de entidades, casos de uso, datasources y slices existentes |
+| `npm run test:e2e` / `npm run test:e2e:ui` | Pruebas E2E de Cypress (en consola / con interfaz). Necesitan el front en marcha, una API y dos cuentas de prueba; ver el README |
+| `npm run typecheck:e2e` | Chequeo de tipos de `cypress/` (el `tsconfig.json` raíz la excluye) |
 | `npm run typecheck` | Chequeo de tipos. Corre antes `next typegen`: sin eso, en un clon limpio `tsc` falla con `Cannot find name 'LayoutProps'`, porque Next genera ese tipo en `.next/types` |
 
 `lint:clean` y `arch:inventory` viven en `.claude/skills/clean-arch-redux/scripts/`, una carpeta que **no se versiona** (ver «La skill»). Sin esa carpeta, esos dos scripts fallan.
@@ -178,9 +180,9 @@ Antes de dar una tarea por terminada: `npm run lint:clean`, `npm run typecheck`,
 
 Si una tarea depende de una de estas, pregunta al equipo antes de decidir:
 
-- **E2E:** Playwright o Cypress (el PDF dice Cypress; por ahora Playwright).
+- Ninguna por ahora.
 
-Ya decididas: el módulo dual es `events`, con datasources REST y GraphQL elegidos por `NEXT_PUBLIC_DATA_SOURCE`, sesión en cookie httpOnly con Server Actions (como el curso), UI con Tailwind + daisyUI, las extensiones del backend viven en el repo `Boosted`, los permisos son `recurso:acción` y viajan en el JWT, los datasources REST obtienen el token con `apiClient` (`src/core/http/`), y el tiempo real usa un ticket de un solo uso (el socket vive en el navegador, así que su contenedor no es `server-only` y el ticket se pide a un Route Handler same-origin; ver el issue #37).
+Ya decididas: las pruebas E2E se hacen con Cypress (lo pide el enunciado), el módulo dual es `events`, con datasources REST y GraphQL elegidos por `NEXT_PUBLIC_DATA_SOURCE`, sesión en cookie httpOnly con Server Actions (como el curso), UI con Tailwind + daisyUI, las extensiones del backend viven en el repo `Boosted`, los permisos son `recurso:acción` y viajan en el JWT, los datasources REST obtienen el token con `apiClient` (`src/core/http/`), y el tiempo real usa un ticket de un solo uso (el socket vive en el navegador, así que su contenedor no es `server-only` y el ticket se pide a un Route Handler same-origin; ver el issue #37).
 
 ## Flujo de trabajo con Git
 

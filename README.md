@@ -23,9 +23,10 @@ Consume la API de [Boosted](https://github.com/Computacion-3/Boosted) (NestJS + 
 3. [Arranque rápido](#arranque-rápido)
 4. [Arquitectura](#arquitectura)
 5. [Módulo dual REST y GraphQL](#módulo-dual-rest-y-graphql)
-6. [Despliegue](#despliegue)
-7. [Flujo de trabajo y calidad](#flujo-de-trabajo-y-calidad)
-8. [Autores y contexto académico](#autores-y-contexto-académico)
+6. [Pruebas E2E con Cypress](#pruebas-e2e-con-cypress)
+7. [Despliegue](#despliegue)
+8. [Flujo de trabajo y calidad](#flujo-de-trabajo-y-calidad)
+9. [Autores y contexto académico](#autores-y-contexto-académico)
 
 ## Estado del proyecto
 
@@ -44,7 +45,7 @@ Situación al 23 de noviembre de 2026.
 ### Pendiente
 
 - **Garaje y bitácora:** vehículos, modificaciones, bitácora de proyecto y resumen de inversión (issues #16 a #21), y el perfil (#15). Mientras no existan, el enlace «Garaje» del menú y «Mi perfil» del menú de usuario no llevan a ninguna pantalla.
-- **Pruebas E2E automatizadas.** Hoy se verifica con `typecheck`, `lint`, `build` y pruebas manuales descritas en cada pull request.
+- **Más pruebas E2E.** La suite de Cypress ya cubre las notificaciones en tiempo real (ver [Pruebas E2E](#pruebas-e2e-con-cypress)); faltan registro, inicio y cierre de sesión (#31) y el control de acceso por permisos (#32). El resto se verifica con `typecheck`, `lint`, `build` y pruebas manuales descritas en cada pull request.
 - **Despliegue del frontend en Vercel** y el flujo de integración continua.
 - **Portada** (`/`): sigue siendo una pantalla provisional.
 
@@ -60,6 +61,7 @@ Situación al 23 de noviembre de 2026.
 | Zod | 4.6 | Validación de formularios |
 | socket.io-client | 4.8 | Notificaciones en tiempo real |
 | jwt-decode | 4.0 | Leer (no verificar) el token en el servidor |
+| Cypress | 16.3 | Pruebas E2E |
 | ESLint | 9 | Calidad de código |
 
 ## Arranque rápido
@@ -131,6 +133,9 @@ Next incrusta las variables `NEXT_PUBLIC_*` al construir. Si cambias una, hay qu
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Chequeo de tipos (`next typegen` y `tsc --noEmit`) |
 | `npm run lint:clean` | Linter de Clean Architecture del equipo (ver [Calidad](#flujo-de-trabajo-y-calidad)) |
+| `npm run test:e2e` | Pruebas E2E de Cypress en consola (ver [Pruebas E2E](#pruebas-e2e-con-cypress)) |
+| `npm run test:e2e:ui` | Las mismas pruebas con la interfaz de Cypress |
+| `npm run typecheck:e2e` | Chequeo de tipos de la carpeta `cypress/` (aparte, porque `tsconfig.json` la excluye) |
 
 ## Arquitectura
 
@@ -267,6 +272,45 @@ Una trampa real: en GraphQL **no** se debe leer `extensions.code` para saber el 
 ### Conclusión
 
 Para este módulo, un recurso plano cuyas pantallas usan casi todos los campos, **no hay diferencia práctica de rendimiento**: la latencia (unos 188 ms) la domina la red, no el protocolo. La ventaja medible de GraphQL es pedir menos campos (el listado baja a la mitad cuando la pantalla solo necesita los de la tarjeta), aunque con compresión la diferencia real en la red es menor que la de la tabla. A cambio cuesta más código y pierde la caché HTTP y los estados HTTP. Por eso `rest` es la fuente por defecto y `graphql` queda disponible como alternativa demostrada: elegir una u otra es una variable de entorno, no una reescritura.
+
+## Pruebas E2E con Cypress
+
+La suite está en `cypress/e2e/`. Hoy tiene una prueba, `notifications.cy.ts`, con seis casos del tiempo real: la campana conectada y vacía, el contador y el aviso flotante tras un like, la lista y su enlace tras un comentario, «Marcar como leídas», lo que **no** debe avisar (el like propio y quitar un like) y la desaparición de la campana al cerrar sesión.
+
+### Qué necesita
+
+1. El front en marcha (`npm run dev`, o `npm run build` y `npm run start -- -p 3001`) y apuntando a una API.
+2. **Dos cuentas distintas** de esa API, por ejemplo dos aficionados del seed (sus datos están en la sección 9 del [README del backend](https://github.com/Computacion-3/Boosted#readme)). La *autora* mira la app en el navegador y recibe los avisos; la *otra persona* da like y comenta por la API mientras la autora mira.
+3. Las credenciales, **sin subirlas al repositorio**. Copia `cypress.env.example.json` a `cypress.env.json` (está ignorado por Git) y rellénalo, o define las variables de entorno:
+
+| Variable | Qué es |
+| --- | --- |
+| `CYPRESS_AUTHOR_EMAIL`, `CYPRESS_AUTHOR_PASSWORD` | Cuenta que mira la app y recibe los avisos |
+| `CYPRESS_ACTOR_EMAIL`, `CYPRESS_ACTOR_PASSWORD` | Cuenta que da like y comenta |
+| `E2E_API_URL` | API a la que habla la prueba. Por defecto `http://localhost:3000`; debe ser la misma que usa el front (`API_URL`) |
+| `CYPRESS_BASE_URL` | Dirección del front. Por defecto `http://localhost:3001` |
+
+### Ejecutar
+
+```bash
+npm run test:e2e        # en consola
+npm run test:e2e:ui     # con la interfaz de Cypress
+```
+
+Contra el backend de Render, en PowerShell (el primer arranque en frío puede tardar cerca de un minuto):
+
+```powershell
+$env:E2E_API_URL = "https://boosted-api.onrender.com"
+npm run test:e2e
+```
+
+### Cómo funciona
+
+- La autora inicia sesión por el formulario (así la cookie `httpOnly` la crea la Server Action del propio front) y `cy.session` la reutiliza entre casos.
+- La otra persona actúa con `cy.request` directo a la API; el navegador no participa.
+- Cada caso crea su propia publicación y la borra al terminar, así que los likes (que son un interruptor) no se mezclan entre casos.
+- Los avisos **no se guardan**: quien no esté conectado cuando ocurre algo no lo recibe. Por eso cada caso espera a que la campana tenga `data-connection="connected"` antes de que la otra persona actúe, en lugar de dormir un tiempo fijo.
+- Cerrar sesión revoca el token del navegador, así que ese caso va al final del archivo. La prueba espera poco más de un segundo antes de abrir la sesión del navegador para que su token no sea idéntico al que usa para limpiar.
 
 ## Despliegue
 
