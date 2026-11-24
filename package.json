@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
+    "typecheck:e2e": "tsc --noEmit -p cypress/tsconfig.json",
+    "test:e2e": "cypress run",
+    "test:e2e:ui": "cypress open",
     "lint:clean": "node .claude/skills/clean-arch-redux/scripts/lint-clean.mjs",
     "arch:inventory": "node .claude/skills/clean-arch-redux/scripts/inventory.mjs"
   },
@@ -27,6 +30,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cypress": "^16.3.0",
     "daisyui": "^5.7.50",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",

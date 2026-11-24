@@ -13,6 +13,12 @@
 # testing
 /coverage
 
+# cypress: capturas de fallos, descargas y credenciales locales (cypress.env.example.json sí se versiona)
+/cypress/screenshots/
+/cypress/videos/
+/cypress/downloads/
+/cypress.env.json
+
 # next.js
 /.next/
 /out/
