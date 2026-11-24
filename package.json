@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "lint:clean": "node .claude/skills/clean-arch-redux/scripts/lint-clean.mjs",
-    "arch:inventory": "node .claude/skills/clean-arch-redux/scripts/inventory.mjs"
+    "arch:inventory": "node .claude/skills/clean-arch-redux/scripts/inventory.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.14.0",
@@ -23,6 +25,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^20",
     "@types/react": "^19",
