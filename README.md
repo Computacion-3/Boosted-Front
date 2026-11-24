@@ -46,7 +46,7 @@ Situación al 24 de noviembre de 2026.
 ### Pendiente
 
 - **Garaje y bitácora:** vehículos, modificaciones, bitácora de proyecto y resumen de inversión (issues #16 a #21). Mientras no existan, el enlace «Garaje» del menú no lleva a ninguna pantalla.
-- **Más pruebas E2E:** ya hay pruebas de humo y de control de acceso por rol (ver [Pruebas end-to-end](#pruebas-end-to-end)); faltan las de cada funcionalidad (#31).
+- **Más pruebas E2E:** ya hay pruebas de humo, de control de acceso por rol y de notificaciones en tiempo real (ver [Pruebas end-to-end](#pruebas-end-to-end)); faltan las de registro, inicio y cierre de sesión (#31). El resto se verifica con `typecheck`, `lint`, `build` y pruebas manuales descritas en cada pull request.
 - **Despliegue del frontend en Vercel** y el flujo de integración continua.
 - **Portada** (`/`): sigue siendo una pantalla provisional.
 
@@ -62,8 +62,8 @@ Situación al 24 de noviembre de 2026.
 | Zod | 4.6 | Validación de formularios |
 | socket.io-client | 4.8 | Notificaciones en tiempo real |
 | jwt-decode | 4.0 | Leer (no verificar) el token en el servidor |
+| Cypress | 16.3 | Pruebas end-to-end |
 | ESLint | 9 | Calidad de código |
-| Playwright | 1.63 | Pruebas end-to-end |
 
 ## Arranque rápido
 
@@ -136,53 +136,63 @@ Next incrusta las variables `NEXT_PUBLIC_*` al construir. Si cambias una, hay qu
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Chequeo de tipos (`next typegen` y `tsc --noEmit`) |
 | `npm run lint:clean` | Linter de Clean Architecture del equipo (ver [Calidad](#flujo-de-trabajo-y-calidad)) |
-| `npm run test:e2e` | Pruebas end-to-end con Playwright |
-| `npm run test:e2e:ui` | Las mismas pruebas en la interfaz gráfica de Playwright, para verlas paso a paso |
+| `npm run test:e2e` | Pruebas end-to-end con Cypress en la terminal (ver [Pruebas end-to-end](#pruebas-end-to-end)) |
+| `npm run test:e2e:ui` | Las mismas pruebas en la interfaz de Cypress, para verlas paso a paso |
+| `npm run typecheck:e2e` | Chequeo de tipos de la carpeta `cypress/` (aparte, porque `tsconfig.json` la excluye) |
 
 ## Pruebas end-to-end
 
-Las pruebas E2E usan **Playwright** (el curso lo enseña en la semana 15). Abren un Chromium real, navegan por la aplicación como una persona y hablan con una API de verdad.
+Las pruebas E2E usan **Cypress**, como pide el enunciado del proyecto final. Abren un navegador real, navegan por la aplicación como una persona y hablan con una API de verdad.
 
-### Primera vez
+### Qué necesita
 
-```bash
-npx playwright install chromium
-```
-
-Después agrega a `.env.local` una cuenta de cada rol de la API contra la que vas a probar. Con el seed del backend sirven sus cuentas (sección 9 de su README); los valores **no se suben al repositorio**, solo los nombres están en `.env.example`:
+1. El front en marcha en el puerto 3001 (`npm run dev`, o `npm run build` y `npm run start -- -p 3001`) y apuntando a una API. Cypress no lo levanta.
+2. **Tres cuentas** de esa API, una por rol. Con el seed sirven las del [README del backend](https://github.com/Computacion-3/Boosted#readme) (sección 9).
+3. Las credenciales, **sin subirlas al repositorio**. Ponlas en `.env.local` (solo los nombres están en `.env.example`), o copia `cypress.env.example.json` a `cypress.env.json` (está ignorado por Git), o define variables `CYPRESS_AFICIONADO_EMAIL`, etc.
 
 | Variable | Para qué |
 | --- | --- |
-| `E2E_AFICIONADO_EMAIL`, `E2E_AFICIONADO_PASSWORD` | Cuenta sin permisos |
-| `E2E_MODERADOR_EMAIL`, `E2E_MODERADOR_PASSWORD` | Cuenta con `posts:moderate` |
+| `E2E_AFICIONADO_EMAIL`, `E2E_AFICIONADO_PASSWORD` | Cuenta sin permisos. También es la *autora* que recibe los avisos de las notificaciones |
+| `E2E_MODERADOR_EMAIL`, `E2E_MODERADOR_PASSWORD` | Cuenta con `posts:moderate`. También es la *otra persona* que da like y comenta |
 | `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD` | Cuenta con todos los permisos |
 | `E2E_BASE_URL` | Opcional. URL del front; por defecto `http://localhost:3001` |
-| `E2E_API_URL` | Opcional. API de pruebas: si el front no está corriendo, Playwright lo levanta apuntando a esta URL en vez de `API_URL` |
+| `E2E_API_URL` | Opcional. API a la que habla la prueba; por defecto `http://localhost:3000`. Debe ser la misma que usa el front (`API_URL`) |
 
 ### Ejecutar
 
 ```bash
-npm run test:e2e        # todas, en la terminal
-npm run test:e2e:ui     # interfaz gráfica
-npx playwright show-report   # informe HTML de la última corrida (en CI)
+npm run test:e2e         # todas, en la terminal
+npm run test:e2e:ui      # con la interfaz de Cypress
+npm run typecheck:e2e    # tipos de la carpeta cypress/ (aparte, porque tsconfig.json la excluye)
 ```
 
-Si el front ya está corriendo en el puerto 3001 se reutiliza; si no, Playwright ejecuta `npm run dev` y lo apaga al terminar. Las pruebas corren una por una porque comparten la base de datos de la API.
+Contra el backend de Render, en PowerShell (el primer arranque en frío puede tardar cerca de un minuto):
+
+```powershell
+$env:E2E_API_URL = "https://boosted-api.onrender.com"
+npm run test:e2e
+```
 
 ### Cómo están organizadas
 
 ```text
-playwright.config.ts        webServer, proyectos y carga de .env.local
-e2e/
-  support/accounts.ts       cuentas por rol (desde E2E_*) y dónde se guarda cada sesión
-  auth.setup.ts             inicia sesión una vez por rol y guarda las cookies en e2e/.auth/
-  smoke.spec.ts             la app arranca, habla con la API y la sesión guardada sirve
-  access-control.spec.ts    qué ve y qué no ve cada rol
+cypress.config.ts           carga .env.local, la dirección del front y de la API y las credenciales
+cypress/
+  support/accounts.ts       cuentas por rol (desde E2E_*)
+  support/auth.ts           inicio de sesión por la interfaz, reutilizado con cy.session
+  support/api.ts            llamadas directas a la API: iniciar sesión, crear y borrar publicaciones, like, comentar
+  e2e/smoke.cy.ts           la app arranca, habla con la API y la sesión sirve
+  e2e/access-control.cy.ts  qué ve y qué no ve cada rol
+  e2e/notifications.cy.ts   avisos en tiempo real
 ```
 
-- **La sesión se reutiliza.** `auth.setup.ts` entra por el formulario de `/login` con cada cuenta y guarda el `storageState` (incluida la cookie `httpOnly` de la sesión) en `e2e/.auth/<rol>.json`. Las pruebas arrancan ya con sesión y no repiten el login. Esa carpeta está en `.gitignore` porque contiene el JWT.
-- **Cada archivo elige el rol** con `test.use({ storageState: STORAGE_STATE.moderador })`; por defecto es el aficionado. Para probar sin sesión: `test.use({ storageState: { cookies: [], origins: [] } })`.
-- **Control de acceso** (`access-control.spec.ts`): sin sesión, las rutas privadas redirigen a `/login`; el aficionado no ve los enlaces de administración ni las acciones de moderación y en `/admin/users` y `/admin/roles` ve el aviso «Error 403»; el moderador sí ve las acciones de moderación pero no entra a usuarios; el administrador entra a la gestión de usuarios desde el menú.
+- **La sesión se reutiliza.** Cada caso inicia sesión por el formulario de `/login` (así la cookie `httpOnly` la crea la Server Action del propio front) y `cy.session` la restaura sin repetir el formulario.
+- **Control de acceso** (`access-control.cy.ts`): sin sesión, las rutas privadas redirigen a `/login`; el aficionado no ve los enlaces de administración ni las acciones de moderación y en `/admin/users` y `/admin/roles` ve el aviso «Error 403»; el moderador sí ve las acciones de moderación pero no entra a usuarios; el administrador entra a la gestión de usuarios desde el menú.
+- **Notificaciones** (`notifications.cy.ts`, seis casos): la campana conectada y vacía, el contador y el aviso flotante tras un like, la lista y su enlace tras un comentario, «Marcar como leídas», lo que **no** debe avisar (el like propio y quitar un like) y la desaparición de la campana al cerrar sesión.
+  - La otra persona actúa con `cy.request` directo a la API; el navegador no participa.
+  - Cada caso crea su propia publicación y la borra al terminar, así que los likes (que son un interruptor) no se mezclan entre casos.
+  - Los avisos **no se guardan**: quien no esté conectado cuando ocurre algo no lo recibe. Por eso cada caso espera a que la campana tenga `data-connection="connected"` antes de que la otra persona actúe, en lugar de dormir un tiempo fijo.
+  - Cerrar sesión revoca el token del navegador, así que ese caso va al final del archivo. La prueba espera poco más de un segundo antes de abrir la sesión del navegador para que su token no sea idéntico al que usa para limpiar.
 
 Estas pruebas revisan lo que muestra la interfaz. No reemplazan la protección real, que está en el backend y en las tres puertas descritas en [Control de acceso por permisos](#control-de-acceso-por-permisos).
 

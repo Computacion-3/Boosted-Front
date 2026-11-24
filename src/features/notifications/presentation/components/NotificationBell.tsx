@@ -75,7 +75,9 @@ export function NotificationBell({
     : "";
 
   return (
-    <div ref={wrapperRef} className="relative">
+    // data-connection no cambia nada visible: lo leen las pruebas E2E para saber cuándo el socket
+    // ya está conectado (los avisos no se guardan, así que antes de eso se perderían).
+    <div ref={wrapperRef} className="relative" data-connection={connection}>
       <button
         ref={buttonRef}
         type="button"

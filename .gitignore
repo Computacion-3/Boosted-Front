@@ -13,6 +13,12 @@
 # testing
 /coverage
 
+# cypress: capturas de fallos, descargas y credenciales locales (cypress.env.example.json sí se versiona)
+/cypress/screenshots/
+/cypress/videos/
+/cypress/downloads/
+/cypress.env.json
+
 # next.js
 /.next/
 /out/
@@ -46,10 +52,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# Playwright: reportes y sesiones guardadas por e2e/auth.setup.ts (tienen el JWT)
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/e2e/.auth/
