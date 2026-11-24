@@ -21,15 +21,16 @@ Consume la API de [Boosted](https://github.com/Computacion-3/Boosted) (NestJS + 
 1. [Estado del proyecto](#estado-del-proyecto)
 2. [Tecnologías](#tecnologías)
 3. [Arranque rápido](#arranque-rápido)
-4. [Arquitectura](#arquitectura)
-5. [Módulo dual REST y GraphQL](#módulo-dual-rest-y-graphql)
-6. [Despliegue](#despliegue)
-7. [Flujo de trabajo y calidad](#flujo-de-trabajo-y-calidad)
-8. [Autores y contexto académico](#autores-y-contexto-académico)
+4. [Pruebas end-to-end](#pruebas-end-to-end)
+5. [Arquitectura](#arquitectura)
+6. [Módulo dual REST y GraphQL](#módulo-dual-rest-y-graphql)
+7. [Despliegue](#despliegue)
+8. [Flujo de trabajo y calidad](#flujo-de-trabajo-y-calidad)
+9. [Autores y contexto académico](#autores-y-contexto-académico)
 
 ## Estado del proyecto
 
-Situación al 23 de noviembre de 2026.
+Situación al 24 de noviembre de 2026.
 
 ### Lo que funciona hoy
 
@@ -38,13 +39,14 @@ Situación al 23 de noviembre de 2026.
 | Registro e inicio de sesión | `/register`, `/login` | Validación con mensajes por campo, cookie de sesión `httpOnly` y cierre de sesión desde el menú de usuario. |
 | Comunidad | `/posts`, `/posts/new`, `/posts/[id]`, `/posts/[id]/edit` | Publicaciones de 8 tipos, filtros, paginación, likes optimistas, comentarios (crear, editar, eliminar) y moderación (ocultar y restaurar) con el permiso `posts:moderate`. |
 | Eventos | `/events`, `/events/new`, `/events/[id]`, `/events/[id]/edit` | Listado con filtros por ciudad, tipo y fechas, paginación y CRUD completo. Es el módulo dual REST y GraphQL. |
+| Perfil | `/profile` | Ver y editar el perfil propio (nombre, usuario, biografía, ciudad, país y foto por URL). El correo y la contraseña no se editan aquí. |
 | Administración | `/admin/users`, `/admin/roles` | Buscar usuarios, cambiar su rol y su estado, y ver y editar los permisos de cada rol. |
 | Notificaciones en tiempo real | Campana del Header | Aviso al autor de una publicación cuando alguien le da like o la comenta, sin recargar la página. |
 
 ### Pendiente
 
-- **Garaje y bitácora:** vehículos, modificaciones, bitácora de proyecto y resumen de inversión (issues #16 a #21), y el perfil (#15). Mientras no existan, el enlace «Garaje» del menú y «Mi perfil» del menú de usuario no llevan a ninguna pantalla.
-- **Pruebas E2E automatizadas.** Hoy se verifica con `typecheck`, `lint`, `build` y pruebas manuales descritas en cada pull request.
+- **Garaje y bitácora:** vehículos, modificaciones, bitácora de proyecto y resumen de inversión (issues #16 a #21). Mientras no existan, el enlace «Garaje» del menú no lleva a ninguna pantalla.
+- **Más pruebas E2E:** ya hay pruebas de humo y de control de acceso por rol (ver [Pruebas end-to-end](#pruebas-end-to-end)); faltan las de cada funcionalidad (#31).
 - **Despliegue del frontend en Vercel** y el flujo de integración continua.
 - **Portada** (`/`): sigue siendo una pantalla provisional.
 
@@ -61,6 +63,7 @@ Situación al 23 de noviembre de 2026.
 | socket.io-client | 4.8 | Notificaciones en tiempo real |
 | jwt-decode | 4.0 | Leer (no verificar) el token en el servidor |
 | ESLint | 9 | Calidad de código |
+| Playwright | 1.63 | Pruebas end-to-end |
 
 ## Arranque rápido
 
@@ -119,6 +122,8 @@ El seed del backend crea un administrador, un moderador y dos aficionados. Los c
 | `NEXT_PUBLIC_DATA_SOURCE` | `rest` o `graphql` | Fuente de datos del módulo dual (eventos). Si falta, usa `rest`. |
 | `NEXT_PUBLIC_WS_URL` | URL del servidor WebSocket | Normalmente igual a `API_URL`. Es obligatoria para las notificaciones: sin ella la campana avisa que no está configurada. |
 
+Las pruebas E2E usan además sus propias variables `E2E_*` (ver [Pruebas end-to-end](#pruebas-end-to-end)).
+
 Next incrusta las variables `NEXT_PUBLIC_*` al construir. Si cambias una, hay que volver a ejecutar `npm run build` (o reiniciar `npm run dev`).
 
 ### Comandos
@@ -131,6 +136,55 @@ Next incrusta las variables `NEXT_PUBLIC_*` al construir. Si cambias una, hay qu
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Chequeo de tipos (`next typegen` y `tsc --noEmit`) |
 | `npm run lint:clean` | Linter de Clean Architecture del equipo (ver [Calidad](#flujo-de-trabajo-y-calidad)) |
+| `npm run test:e2e` | Pruebas end-to-end con Playwright |
+| `npm run test:e2e:ui` | Las mismas pruebas en la interfaz gráfica de Playwright, para verlas paso a paso |
+
+## Pruebas end-to-end
+
+Las pruebas E2E usan **Playwright** (el curso lo enseña en la semana 15). Abren un Chromium real, navegan por la aplicación como una persona y hablan con una API de verdad.
+
+### Primera vez
+
+```bash
+npx playwright install chromium
+```
+
+Después agrega a `.env.local` una cuenta de cada rol de la API contra la que vas a probar. Con el seed del backend sirven sus cuentas (sección 9 de su README); los valores **no se suben al repositorio**, solo los nombres están en `.env.example`:
+
+| Variable | Para qué |
+| --- | --- |
+| `E2E_AFICIONADO_EMAIL`, `E2E_AFICIONADO_PASSWORD` | Cuenta sin permisos |
+| `E2E_MODERADOR_EMAIL`, `E2E_MODERADOR_PASSWORD` | Cuenta con `posts:moderate` |
+| `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD` | Cuenta con todos los permisos |
+| `E2E_BASE_URL` | Opcional. URL del front; por defecto `http://localhost:3001` |
+| `E2E_API_URL` | Opcional. API de pruebas: si el front no está corriendo, Playwright lo levanta apuntando a esta URL en vez de `API_URL` |
+
+### Ejecutar
+
+```bash
+npm run test:e2e        # todas, en la terminal
+npm run test:e2e:ui     # interfaz gráfica
+npx playwright show-report   # informe HTML de la última corrida (en CI)
+```
+
+Si el front ya está corriendo en el puerto 3001 se reutiliza; si no, Playwright ejecuta `npm run dev` y lo apaga al terminar. Las pruebas corren una por una porque comparten la base de datos de la API.
+
+### Cómo están organizadas
+
+```text
+playwright.config.ts        webServer, proyectos y carga de .env.local
+e2e/
+  support/accounts.ts       cuentas por rol (desde E2E_*) y dónde se guarda cada sesión
+  auth.setup.ts             inicia sesión una vez por rol y guarda las cookies en e2e/.auth/
+  smoke.spec.ts             la app arranca, habla con la API y la sesión guardada sirve
+  access-control.spec.ts    qué ve y qué no ve cada rol
+```
+
+- **La sesión se reutiliza.** `auth.setup.ts` entra por el formulario de `/login` con cada cuenta y guarda el `storageState` (incluida la cookie `httpOnly` de la sesión) en `e2e/.auth/<rol>.json`. Las pruebas arrancan ya con sesión y no repiten el login. Esa carpeta está en `.gitignore` porque contiene el JWT.
+- **Cada archivo elige el rol** con `test.use({ storageState: STORAGE_STATE.moderador })`; por defecto es el aficionado. Para probar sin sesión: `test.use({ storageState: { cookies: [], origins: [] } })`.
+- **Control de acceso** (`access-control.spec.ts`): sin sesión, las rutas privadas redirigen a `/login`; el aficionado no ve los enlaces de administración ni las acciones de moderación y en `/admin/users` y `/admin/roles` ve el aviso «Error 403»; el moderador sí ve las acciones de moderación pero no entra a usuarios; el administrador entra a la gestión de usuarios desde el menú.
+
+Estas pruebas revisan lo que muestra la interfaz. No reemplazan la protección real, que está en el backend y en las tres puertas descritas en [Control de acceso por permisos](#control-de-acceso-por-permisos).
 
 ## Arquitectura
 
@@ -179,6 +233,7 @@ Reglas que se cumplen en todo el código:
 | `users` | listar (con búsqueda y paginación), cambiar rol, cambiar estado | REST |
 | `roles` | ver roles y permisos, actualizar los permisos de un rol | REST |
 | `notifications` | conectar, desconectar | WebSocket |
+| `profile` | ver mi perfil, editar mi perfil (`GET` y `PATCH /users/me`) | REST |
 
 ### Sesión con cookie httpOnly
 
@@ -201,7 +256,7 @@ Ocultar un botón con `hasPermission` o el componente `Can` solo orienta la inte
 
 ### Estado global
 
-Un único store de Redux Toolkit con un slice por funcionalidad (`auth`, `posts`, `comments`, `events`, `users`, `roles`, `notifications`). Los componentes no tocan el store: usan hooks fachada que encapsulan el `dispatch` y los selectores. Al cerrar sesión se vacían todos los slices, así no queda en memoria nada de la persona anterior.
+Un único store de Redux Toolkit con un slice por funcionalidad (`auth`, `posts`, `comments`, `events`, `profile`, `users`, `roles`, `notifications`). Los componentes no tocan el store: usan hooks fachada que encapsulan el `dispatch` y los selectores. Al cerrar sesión se vacían todos los slices, así no queda en memoria nada de la persona anterior.
 
 ### Tiempo real
 
@@ -296,7 +351,7 @@ No hay problemas de CORS: las peticiones HTTP las hace el servidor de Next, el b
 - **Ramas:** `main` (estable), `develop` (integración y destino de los pull requests) y `feature/*`, `fix/*`, `chore/*` o `docs/*` desde `develop`.
 - **Commits:** Conventional Commits en inglés (`feat(auth): add login form`), pequeños y frecuentes. El historial de cada persona es evidencia de su participación.
 - **Pull requests:** hacia `develop`, con revisión de otra persona del equipo. Cada uno referencia su issue.
-- **Antes de abrir un pull request:** `npm run typecheck`, `npm run lint` y `npm run build` sin errores.
+- **Antes de abrir un pull request:** `npm run typecheck`, `npm run lint` y `npm run build` sin errores, y `npm run test:e2e` si el cambio toca rutas, la sesión o los permisos.
 - **`npm run lint:clean`** audita las dependencias entre capas. Necesita la skill `clean-arch-redux`, que se copia a `.claude/skills/` y no se versiona. Hoy marca 6 errores y 8 avisos que son falsos positivos conocidos: la skill es anterior a las Server Actions y espera que el slice importe el contenedor directamente, mientras que aquí el contenedor es `server-only` y lo usan las acciones (`presentation/actions`) y no el slice. El detalle está en [`AGENTS.md`](./AGENTS.md).
 - **Convenciones de arquitectura y de trabajo:** [`AGENTS.md`](./AGENTS.md).
 
