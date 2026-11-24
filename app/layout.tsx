@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthHydrator } from "@/src/features/auth/presentation/components/AuthHydrator";
 import { AuthUserViewModelMapper } from "@/src/features/auth/presentation/viewmodels/auth-user.viewmodel";
+import { NotificationsConnector } from "@/src/features/notifications/presentation/components/NotificationsConnector";
 import { getSession } from "@/src/lib/dal";
 import { StoreProvider } from "@/src/store/StoreProvider";
 import "./globals.css";
@@ -37,6 +38,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-base-200">
         <StoreProvider>
           <AuthHydrator user={user} />
+          <NotificationsConnector />
           {children}
         </StoreProvider>
       </body>

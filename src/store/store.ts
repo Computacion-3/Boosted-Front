@@ -2,6 +2,7 @@ import { combineReducers, configureStore, type UnknownAction } from "@reduxjs/to
 import { authReducer, logout } from "@/src/features/auth/presentation/store/auth.slice";
 import { commentsReducer } from "@/src/features/comments/presentation/store/comments.slice";
 import { eventsReducer } from "@/src/features/events/presentation/store/events.slice";
+import { notificationsReducer } from "@/src/features/notifications/presentation/store/notifications.slice";
 import { postsReducer } from "@/src/features/posts/presentation/store/posts.slice";
 import { rolesReducer } from "@/src/features/roles/presentation/store/roles.slice";
 import { usersReducer } from "@/src/features/users/presentation/store/users.slice";
@@ -26,6 +27,7 @@ const appReducer = combineReducers({
   auth: authReducer,
   comments: commentsReducer,
   events: eventsReducer,
+  notifications: notificationsReducer,
   posts: postsReducer,
   roles: rolesReducer,
   users: usersReducer,
