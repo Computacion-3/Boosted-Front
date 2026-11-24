@@ -1,14 +1,12 @@
 import { expect, test as setup } from "@playwright/test";
-import { getAccount, STORAGE_STATE, type E2ERole } from "./support/accounts";
+import { E2E_ROLES, getAccount, STORAGE_STATE } from "./support/accounts";
 
 /*
  * Inicia sesión por la interfaz, como lo haría una persona, y guarda las cookies
  * (incluida la cookie httpOnly `session`) en e2e/.auth/<rol>.json. Las pruebas
  * reutilizan ese archivo y no tienen que volver a iniciar sesión cada vez.
  */
-const ROLES: E2ERole[] = ["aficionado"];
-
-for (const role of ROLES) {
+for (const role of E2E_ROLES) {
   setup(`iniciar sesión como ${role}`, async ({ page }) => {
     const { email, password } = getAccount(role);
 
