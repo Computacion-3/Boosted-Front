@@ -1,3 +1,4 @@
+import { garageReducer } from "@/src/features/garage/presentation/store/garage.slice";
 import { combineReducers, configureStore, type UnknownAction } from "@reduxjs/toolkit";
 import { authReducer, logout } from "@/src/features/auth/presentation/store/auth.slice";
 import { commentsReducer } from "@/src/features/comments/presentation/store/comments.slice";
@@ -15,6 +16,7 @@ import { usersReducer } from "@/src/features/users/presentation/store/users.slic
  *   2. Se importa aquí y se agrega a `appReducer` con el nombre de la feature:
  *
  *        const appReducer = combineReducers({
+  garage: garageReducer,
  *          auth: authReducer,
  *          posts: postsReducer,
  *        });
@@ -25,6 +27,7 @@ import { usersReducer } from "@/src/features/users/presentation/store/users.slic
  * src/store solo cablea los reducers; la lógica de cada slice vive en su feature.
  */
 const appReducer = combineReducers({
+  garage: garageReducer,
   auth: authReducer,
   comments: commentsReducer,
   events: eventsReducer,

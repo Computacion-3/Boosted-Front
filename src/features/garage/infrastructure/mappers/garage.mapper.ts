@@ -1,0 +1,5 @@
+import type { Vehicle, Modification, JournalEntry } from "../../domain/entities/garage";
+import type { VehicleDto, ModificationDto, JournalDto } from "../dtos/garage.dto";
+export function mapVehicle(d: VehicleDto): Vehicle { return { id: d.id, ownerId: d.ownerId, brand: d.brand, model: d.model, year: d.year, version: d.version, engine: d.engine, transmission: d.transmission, drivetrain: d.drivetrain, color: d.color, horsepower: d.horsepower, torque: d.torque, consumption: d.consumption, mileage: d.mileage, description: d.description, visibility: d.visibility }; }
+export function mapModification(d: ModificationDto): Modification { return { id: d.id, vehicleId: d.vehicleId, name: d.name, category: d.category, brand: d.brand, partModel: d.partModel, status: d.status, installationDate: d.installationDate, partCost: d.partCost, installationCost: d.installationCost, purchaseLocation: d.purchaseLocation, notes: d.notes }; }
+export function mapJournal(d: JournalDto): JournalEntry { return { id: d.id, vehicleId: d.vehicleId, title: d.title, content: d.content, type: d.type, entryDate: d.entryDate, modificationId: d.modificationId, expense: d.expense }; }
