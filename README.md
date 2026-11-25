@@ -46,7 +46,7 @@ Situación al 24 de noviembre de 2026.
 ### Pendiente
 
 - **Garaje y bitácora:** vehículos, modificaciones, bitácora de proyecto y resumen de inversión (issues #16 a #21). Mientras no existan, el enlace «Garaje» del menú no lleva a ninguna pantalla.
-- **Más pruebas E2E:** ya hay pruebas de humo, de control de acceso por rol y de notificaciones en tiempo real (ver [Pruebas end-to-end](#pruebas-end-to-end)); faltan las de registro, inicio y cierre de sesión (#31). El resto se verifica con `typecheck`, `lint`, `build` y pruebas manuales descritas en cada pull request.
+- **Más pruebas E2E:** ya hay pruebas de humo, de control de acceso por rol (incluida la edición de eventos), del perfil y de notificaciones en tiempo real (ver [Pruebas end-to-end](#pruebas-end-to-end)); faltan las de registro, inicio y cierre de sesión (#31). El resto se verifica con `typecheck`, `lint`, `build` y pruebas manuales descritas en cada pull request.
 - **Despliegue del frontend en Vercel** y el flujo de integración continua.
 - **Portada** (`/`): sigue siendo una pantalla provisional.
 
@@ -180,14 +180,18 @@ cypress.config.ts           carga .env.local, la dirección del front y de la AP
 cypress/
   support/accounts.ts       cuentas por rol (desde E2E_*)
   support/auth.ts           inicio de sesión por la interfaz, reutilizado con cy.session
-  support/api.ts            llamadas directas a la API: iniciar sesión, crear y borrar publicaciones, like, comentar
+  support/api.ts            llamadas directas a la API: iniciar sesión, publicaciones, like, comentar, eventos y perfil
   e2e/smoke.cy.ts           la app arranca, habla con la API y la sesión sirve
   e2e/access-control.cy.ts  qué ve y qué no ve cada rol
   e2e/notifications.cy.ts   avisos en tiempo real
+  e2e/events-access.cy.ts   quién ve Editar y Eliminar en un evento, y el 403 de la API
+  e2e/profile.cy.ts         ver y editar el perfil propio, con sus validaciones
 ```
 
 - **La sesión se reutiliza.** Cada caso inicia sesión por el formulario de `/login` (así la cookie `httpOnly` la crea la Server Action del propio front) y `cy.session` la restaura sin repetir el formulario.
 - **Control de acceso** (`access-control.cy.ts`): sin sesión, las rutas privadas redirigen a `/login`; el aficionado no ve los enlaces de administración ni las acciones de moderación y en `/admin/users` y `/admin/roles` ve el aviso «Error 403»; el moderador sí ve las acciones de moderación pero no entra a usuarios; el administrador entra a la gestión de usuarios desde el menú.
+- **Eventos** (`events-access.cy.ts`): antes de empezar crea por la API un evento del moderador y otro del aficionado, y los borra al final. El aficionado no ve «Editar» ni «Eliminar» en el evento ajeno y en su `/edit` ve «No puedes editar este evento»; en el suyo sí los ve, y el moderador los ve en el evento de otra persona. La última prueba llama directo a `PATCH /events/:id` con el token del aficionado y espera un 403: ocultar el botón no protege, protege el backend.
+- **Perfil** (`profile.cy.ts`): `/profile` muestra el perfil de la sesión; el formulario marca el usuario con espacios y la URL inválida y no envía nada; un usuario que ya existe muestra «Ese nombre de usuario ya está en uso» (409); guardar biografía y ciudad muestra «Perfil actualizado» y la API los devuelve; dejar la biografía vacía la borra. Guarda el perfil del aficionado al empezar y lo restaura al terminar.
 - **Notificaciones** (`notifications.cy.ts`, seis casos): la campana conectada y vacía, el contador y el aviso flotante tras un like, la lista y su enlace tras un comentario, «Marcar como leídas», lo que **no** debe avisar (el like propio y quitar un like) y la desaparición de la campana al cerrar sesión.
   - La otra persona actúa con `cy.request` directo a la API; el navegador no participa.
   - Cada caso crea su propia publicación y la borra al terminar, así que los likes (que son un interruptor) no se mezclan entre casos.

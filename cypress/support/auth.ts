@@ -4,7 +4,7 @@ import type { Credentials } from "./api";
 // Los campos del formulario son controlados por React: si se teclea antes de que la página se
 // hidrate, React vuelve a dejarlos vacíos y el envío falla la validación. React marca cada nodo con
 // `__reactProps$…` al hidratarlo, así que se espera a esa marca antes de escribir.
-function waitForHydration(selector: string): void {
+export function waitForHydration(selector: string): void {
   cy.get(selector).should(($element) => {
     const hydrated = Object.keys($element[0]).some((key) => key.startsWith("__reactProps$"));
     expect(hydrated, "la página terminó de hidratarse").to.eq(true);
