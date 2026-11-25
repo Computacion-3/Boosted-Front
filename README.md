@@ -11,7 +11,7 @@ Consume la API de [Boosted](https://github.com/Computacion-3/Boosted) (NestJS + 
 | Backend desplegado (Render) | <https://boosted-api.onrender.com> |
 | Documentación Swagger del backend | <https://boosted-api.onrender.com/api> |
 | GraphQL del backend | <https://boosted-api.onrender.com/graphql> |
-| Frontend desplegado (Vercel) | Pendiente de desplegar (issue #30) |
+| Frontend desplegado (Vercel) | Lo despliega el CI al integrar en `main` (issue #30); la URL se anota aquí cuando exista |
 | Repositorio del backend | <https://github.com/Computacion-3/Boosted> |
 
 > Render duerme el servicio cuando no tiene tráfico: la primera petición después de un rato puede tardar cerca de un minuto. Las siguientes responden en menos de medio segundo.
@@ -30,7 +30,7 @@ Consume la API de [Boosted](https://github.com/Computacion-3/Boosted) (NestJS + 
 
 ## Estado del proyecto
 
-Situación al 24 de noviembre de 2026.
+Situación al 25 de noviembre de 2026.
 
 ### Lo que funciona hoy
 
@@ -41,13 +41,14 @@ Situación al 24 de noviembre de 2026.
 | Eventos | `/events`, `/events/new`, `/events/[id]`, `/events/[id]/edit` | Listado con filtros por ciudad, tipo y fechas, paginación y CRUD completo. Es el módulo dual REST y GraphQL. |
 | Perfil | `/profile` | Ver y editar el perfil propio (nombre, usuario, biografía, ciudad, país y foto por URL). El correo y la contraseña no se editan aquí. |
 | Administración | `/admin/users`, `/admin/roles` | Buscar usuarios, cambiar su rol y su estado, y ver y editar los permisos de cada rol. |
+| Garaje | `/garage`, `/garage/[id]` | Mis vehículos y vehículos públicos, con búsqueda por marca, modelo o año y paginación de 9 en 9. Quien es dueño crea, edita y elimina el vehículo y, en su ficha, sus modificaciones y las entradas de su bitácora. La ficha tiene pestañas: ficha técnica, modificaciones, bitácora e inversión (esta última solo para el dueño: total invertido, gasto en modificaciones, gasto independiente y presupuesto planeado). |
 | Notificaciones en tiempo real | Campana del Header | Aviso al autor de una publicación cuando alguien le da like o la comenta, sin recargar la página. |
 
 ### Pendiente
 
-- **Garaje y bitácora:** vehículos, modificaciones, bitácora de proyecto y resumen de inversión (issues #16 a #21). Mientras no existan, el enlace «Garaje» del menú no lleva a ninguna pantalla.
-- **Más pruebas E2E:** ya hay pruebas de humo, de control de acceso por rol (incluida la edición de eventos), del perfil y de notificaciones en tiempo real (ver [Pruebas end-to-end](#pruebas-end-to-end)); faltan las de registro, inicio y cierre de sesión (#31). El resto se verifica con `typecheck`, `lint`, `build` y pruebas manuales descritas en cada pull request.
-- **Despliegue del frontend en Vercel** y el flujo de integración continua.
+- **Despliegue del frontend en Vercel.** El flujo de integración continua ya está hecho (ver [Despliegue](#despliegue)) y despliega solo al hacer push a `main`. Falta la primera integración de `develop` en `main` y anotar aquí la URL resultante.
+- **Pruebas E2E del garaje.** La suite cubre autenticación, control de acceso, eventos, perfil y notificaciones (ver [Pruebas end-to-end](#pruebas-end-to-end)), pero no el garaje, que se verifica con `typecheck`, `lint`, `build` y pruebas manuales.
+- **Garaje frente a la arquitectura.** `npm run lint:clean` marca en `features/garage` 1 error y 9 avisos que no son los falsos positivos conocidos (un solo caso de uso con varios métodos, componentes que no usan viewmodels, un slice que guarda tipos del dominio). Funciona, pero está por alinear con las capas del resto del proyecto.
 - **Portada** (`/`): sigue siendo una pantalla provisional.
 
 ## Tecnologías
@@ -180,16 +181,19 @@ cypress.config.ts           carga .env.local, la dirección del front y de la AP
 cypress/
   support/accounts.ts       cuentas por rol (desde E2E_*)
   support/auth.ts           inicio de sesión por la interfaz, reutilizado con cy.session
+  support/hydration.ts      espera a que React hidrate la página antes de teclear
   support/api.ts            llamadas directas a la API: iniciar sesión, publicaciones, like, comentar, eventos y perfil
   e2e/smoke.cy.ts           la app arranca, habla con la API y la sesión sirve
   e2e/access-control.cy.ts  qué ve y qué no ve cada rol
   e2e/notifications.cy.ts   avisos en tiempo real
+  e2e/auth.cy.ts            registro, inicio de sesión, recarga y cierre de sesión
   e2e/events-access.cy.ts   quién ve Editar y Eliminar en un evento, y el 403 de la API
   e2e/profile.cy.ts         ver y editar el perfil propio, con sus validaciones
 ```
 
 - **La sesión se reutiliza.** Cada caso inicia sesión por el formulario de `/login` (así la cookie `httpOnly` la crea la Server Action del propio front) y `cy.session` la restaura sin repetir el formulario.
 - **Control de acceso** (`access-control.cy.ts`): sin sesión, las rutas privadas redirigen a `/login`; el aficionado no ve los enlaces de administración ni las acciones de moderación y en `/admin/users` y `/admin/roles` ve el aviso «Error 403»; el moderador sí ve las acciones de moderación pero no entra a usuarios; el administrador entra a la gestión de usuarios desde el menú.
+- **Autenticación** (`auth.cy.ts`, cinco casos): el registro con datos inválidos muestra los errores bajo cada campo sin enviar nada; el registro válido lleva a `/login` con «Tu cuenta quedó creada»; un correo repetido muestra el 409 de la API; un login incorrecto muestra «Credenciales inválidas» y no crea la cookie `session`; y un login correcto crea la cookie `httpOnly`, sobrevive a una recarga y se borra al cerrar sesión. Es la única suite que no usa las cuentas `E2E_*`: crea una cuenta nueva por corrida (`e2e_<fecha>@boosted.test`), así que cada ejecución deja una cuenta en la base porque la API no permite borrar la propia.
 - **Eventos** (`events-access.cy.ts`): antes de empezar crea por la API un evento del moderador y otro del aficionado, y los borra al final. El aficionado no ve «Editar» ni «Eliminar» en el evento ajeno y en su `/edit` ve «No puedes editar este evento»; en el suyo sí los ve, y el moderador los ve en el evento de otra persona. La última prueba llama directo a `PATCH /events/:id` con el token del aficionado y espera un 403: ocultar el botón no protege, protege el backend.
 - **Perfil** (`profile.cy.ts`): `/profile` muestra el perfil de la sesión; el formulario marca el usuario con espacios y la URL inválida y no envía nada; un usuario que ya existe muestra «Ese nombre de usuario ya está en uso» (409); guardar biografía y ciudad muestra «Perfil actualizado» y la API los devuelve; dejar la biografía vacía la borra. Guarda el perfil del aficionado al empezar y lo restaura al terminar.
 - **Notificaciones** (`notifications.cy.ts`, seis casos): la campana conectada y vacía, el contador y el aviso flotante tras un like, la lista y su enlace tras un comentario, «Marcar como leídas», lo que **no** debe avisar (el like propio y quitar un like) y la desaparición de la campana al cerrar sesión.
@@ -197,6 +201,8 @@ cypress/
   - Cada caso crea su propia publicación y la borra al terminar, así que los likes (que son un interruptor) no se mezclan entre casos.
   - Los avisos **no se guardan**: quien no esté conectado cuando ocurre algo no lo recibe. Por eso cada caso espera a que la campana tenga `data-connection="connected"` antes de que la otra persona actúe, en lugar de dormir un tiempo fijo.
   - Cerrar sesión revoca el token del navegador, así que ese caso va al final del archivo. La prueba espera poco más de un segundo antes de abrir la sesión del navegador para que su token no sea idéntico al que usa para limpiar.
+
+Todas esperan a que la página se hidrate antes de teclear: los campos de los formularios son controlados por React y, si se escribe antes, React los deja vacíos otra vez.
 
 Estas pruebas revisan lo que muestra la interfaz. No reemplazan la protección real, que está en el backend y en las tres puertas descritas en [Control de acceso por permisos](#control-de-acceso-por-permisos).
 
@@ -345,18 +351,38 @@ Desplegado en **Render** como servicio web con una base PostgreSQL administrada:
 
 ### Frontend
 
-Pendiente de desplegar en **Vercel** (issue #30). Cuando se despliegue:
+El frontend se despliega en **Vercel** desde GitHub Actions, no desde el panel de Vercel: el archivo [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) valida el código y, solo si todo pasa y el cambio llegó a `main`, lo despliega.
 
-1. Importar el repositorio `Computacion-3/Boosted-Front` en Vercel.
-2. Definir estas variables de entorno **antes del primer build** (las `NEXT_PUBLIC_*` se incrustan al construir):
+**Qué hace el workflow**
 
-   | Variable | Valor |
-   | --- | --- |
-   | `API_URL` | `https://boosted-api.onrender.com` |
-   | `NEXT_PUBLIC_DATA_SOURCE` | `rest` |
-   | `NEXT_PUBLIC_WS_URL` | `https://boosted-api.onrender.com` |
+| Cuándo | Qué corre |
+| --- | --- |
+| Pull request o push a `develop` o `main` | Trabajo `quality`: `npm run lint`, `npm run typecheck`, `npm run typecheck:e2e`, `npm run build`, y luego el build de producción se levanta en el puerto 3001 y corre `npm run test:e2e` (Cypress) contra la API de pruebas. Si algo falla, sube las capturas de Cypress como evidencia. |
+| Push a `main`, con `quality` en verde | Trabajo `deploy`: descarga la configuración de producción de Vercel, construye con `vercel build --prod` y despliega ese mismo build con `vercel deploy --prebuilt --prod`. |
 
-3. Dejar el comando de build por defecto (`next build`) y desplegar.
+Las ejecuciones se hacen de a una (`concurrency`): las pruebas comparten cuentas de prueba y dos corridas a la vez se revocarían el token.
+
+**Qué hay que configurar en GitHub** (Settings, Secrets and variables, Actions). Los valores no se versionan; aquí solo van los nombres:
+
+| Tipo | Nombre | Para qué |
+| --- | --- | --- |
+| Variable | `E2E_API_URL` | API contra la que corren las pruebas (hoy la de Render). También se usa como `API_URL` y `NEXT_PUBLIC_WS_URL` del build de pruebas |
+| Secreto | `E2E_AFICIONADO_EMAIL` y `E2E_AFICIONADO_PASSWORD` | Cuenta sin permisos |
+| Secreto | `E2E_MODERADOR_EMAIL` y `E2E_MODERADOR_PASSWORD` | Cuenta con `posts:moderate` |
+| Secreto | `E2E_ADMIN_EMAIL` y `E2E_ADMIN_PASSWORD` | Cuenta con todos los permisos |
+| Secreto | `VERCEL_TOKEN`, `VERCEL_ORG_ID` y `VERCEL_PROJECT_ID` | Credenciales del despliegue en Vercel |
+
+Si falta alguno de los de las pruebas, el trabajo `quality` falla desde el principio con «Missing CI configuration».
+
+**Qué hay que configurar en Vercel.** Las variables de entorno del proyecto, **antes del primer build** (las `NEXT_PUBLIC_*` se incrustan al construir):
+
+| Variable | Valor |
+| --- | --- |
+| `API_URL` | `https://boosted-api.onrender.com` |
+| `NEXT_PUBLIC_DATA_SOURCE` | `rest` |
+| `NEXT_PUBLIC_WS_URL` | `https://boosted-api.onrender.com` |
+
+**Para desplegar:** abrir un pull request de `develop` a `main`, esperar a que `quality` salga en verde, revisarlo entre dos personas e integrarlo. El push resultante a `main` ejecuta `deploy`. Quien prefiera hacerlo a mano puede importar el repositorio en Vercel con las mismas variables y el comando de build por defecto (`next build`).
 
 No hay problemas de CORS: las peticiones HTTP las hace el servidor de Next, el backend acepta cualquier origen y el gateway del WebSocket refleja el origen del navegador.
 
@@ -365,8 +391,8 @@ No hay problemas de CORS: las peticiones HTTP las hace el servidor de Next, el b
 - **Ramas:** `main` (estable), `develop` (integración y destino de los pull requests) y `feature/*`, `fix/*`, `chore/*` o `docs/*` desde `develop`.
 - **Commits:** Conventional Commits en inglés (`feat(auth): add login form`), pequeños y frecuentes. El historial de cada persona es evidencia de su participación.
 - **Pull requests:** hacia `develop`, con revisión de otra persona del equipo. Cada uno referencia su issue.
-- **Antes de abrir un pull request:** `npm run typecheck`, `npm run lint` y `npm run build` sin errores, y `npm run test:e2e` si el cambio toca rutas, la sesión o los permisos.
-- **`npm run lint:clean`** audita las dependencias entre capas. Necesita la skill `clean-arch-redux`, que se copia a `.claude/skills/` y no se versiona. Hoy marca 6 errores y 8 avisos que son falsos positivos conocidos: la skill es anterior a las Server Actions y espera que el slice importe el contenedor directamente, mientras que aquí el contenedor es `server-only` y lo usan las acciones (`presentation/actions`) y no el slice. El detalle está en [`AGENTS.md`](./AGENTS.md).
+- **Antes de abrir un pull request:** `npm run typecheck`, `npm run lint` y `npm run build` sin errores, y `npm run test:e2e` si el cambio toca rutas, la sesión o los permisos. El CI repite todo eso en cada pull request (ver [Despliegue](#despliegue)).
+- **`npm run lint:clean`** audita las dependencias entre capas. Necesita la skill `clean-arch-redux`, que se copia a `.claude/skills/` y no se versiona. Hoy marca 9 errores y 19 avisos. De ellos, 8 errores y 10 avisos son falsos positivos conocidos: la skill es anterior a las Server Actions y espera que el slice importe el contenedor directamente, mientras que aquí el contenedor es `server-only` y lo usan las acciones (`presentation/actions`) y no el slice. El error y los 9 avisos restantes son del garaje (ver «Pendiente»). El detalle está en [`AGENTS.md`](./AGENTS.md).
 - **Convenciones de arquitectura y de trabajo:** [`AGENTS.md`](./AGENTS.md).
 
 ## Autores y contexto académico
