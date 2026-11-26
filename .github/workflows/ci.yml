@@ -1,0 +1,89 @@
+name: Quality and production deployment
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+permissions:
+  contents: read
+# The E2E suite uses shared test accounts. Serialize runs to avoid token revocation races.
+concurrency:
+  group: boosted-quality-shared-e2e
+  cancel-in-progress: false
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      API_URL: ${{ vars.E2E_API_URL }}
+      NEXT_PUBLIC_WS_URL: ${{ vars.E2E_API_URL }}
+      NEXT_PUBLIC_DATA_SOURCE: rest
+      E2E_API_URL: ${{ vars.E2E_API_URL }}
+      E2E_BASE_URL: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run lint:clean -- --strict
+      - run: npm run typecheck
+      - run: npm run typecheck:e2e
+      - run: npm run build
+      - name: Run Cypress against the production build and test API
+        shell: bash
+        env:
+          E2E_AFICIONADO_EMAIL: ${{ secrets.E2E_AFICIONADO_EMAIL }}
+          E2E_AFICIONADO_PASSWORD: ${{ secrets.E2E_AFICIONADO_PASSWORD }}
+          E2E_MODERADOR_EMAIL: ${{ secrets.E2E_MODERADOR_EMAIL }}
+          E2E_MODERADOR_PASSWORD: ${{ secrets.E2E_MODERADOR_PASSWORD }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for key in API_URL E2E_AFICIONADO_EMAIL E2E_AFICIONADO_PASSWORD E2E_MODERADOR_EMAIL E2E_MODERADOR_PASSWORD E2E_ADMIN_EMAIL E2E_ADMIN_PASSWORD; do
+            if [[ -z "${!key:-}" ]]; then echo "Missing CI configuration: $key"; exit 1; fi
+          done
+          curl --fail --silent --show-error --max-time 120 "$API_URL/api" > /dev/null
+          npm run start -- --port 3001 > /tmp/boosted-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..60}; do
+            if curl --fail --silent http://localhost:3001/ > /dev/null; then break; fi
+            sleep 2
+          done
+          curl --fail --silent --show-error http://localhost:3001/ > /dev/null
+          npm run test:e2e
+      - name: Upload Cypress failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+  deploy:
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Pull production configuration
+        run: npx --yes vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build for Vercel
+        run: npx --yes vercel build --prod --token="$VERCEL_TOKEN"
+      - name: Deploy tested revision
+        run: npx --yes vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

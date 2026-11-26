@@ -1,0 +1,135 @@
+"use client";
+
+import { useCallback, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/src/store/hooks";
+import type { EventFilters } from "../../domain/repositories/event.repository";
+import {
+  clearMutationError,
+  createEventMutation,
+  deleteEventMutation,
+  fetchEventById,
+  fetchEvents,
+  updateEventMutation,
+} from "../store/events.slice";
+import type { EventFormValues } from "../viewmodels/event-form.viewmodel";
+import type { EventViewModel } from "../viewmodels/event.viewmodel";
+
+/**
+ * Hook fachada del listado de eventos. Los componentes no ven Redux: reciben
+ * los eventos y funciones para filtrar, paginar y recargar.
+ */
+export function useEvents() {
+  const dispatch = useAppDispatch();
+  const { query, items, total, status, errorMessage } = useAppSelector(
+    (state) => state.events.list,
+  );
+
+  // La carga necesita una sesión: al cerrar sesión el store vuelve a `idle` con la cookie ya
+  // borrada, y recargar entonces dejaría el listado en `failed` en vez de vacío.
+  const isSignedIn = useAppSelector((state) => state.auth.user !== null);
+
+  // Primera carga (y recarga cuando otra pantalla deja el listado en "idle").
+  useEffect(() => {
+    if (isSignedIn && status === "idle") dispatch(fetchEvents(query));
+  }, [dispatch, isSignedIn, status, query]);
+
+  /** Cambiar filtros vuelve a la página 1. */
+  const applyFilters = useCallback(
+    (filters: EventFilters) => {
+      dispatch(fetchEvents({ ...filters, page: 1, limit: query.limit }));
+    },
+    [dispatch, query.limit],
+  );
+
+  const goToPage = useCallback(
+    (page: number) => {
+      dispatch(fetchEvents({ ...query, page }));
+    },
+    [dispatch, query],
+  );
+
+  const reload = useCallback(() => {
+    dispatch(fetchEvents(query));
+  }, [dispatch, query]);
+
+  const filters: EventFilters = {
+    city: query.city,
+    type: query.type,
+    startDate: query.startDate,
+    endDate: query.endDate,
+  };
+
+  return {
+    events: items,
+    total,
+    page: query.page,
+    limit: query.limit,
+    filters,
+    isLoading: status === "loading" || status === "idle",
+    errorMessage,
+    applyFilters,
+    goToPage,
+    reload,
+  };
+}
+
+/** Hook fachada del detalle de un evento. */
+export function useEventDetail(id: string) {
+  const dispatch = useAppDispatch();
+  const { item, status, errorMessage } = useAppSelector((state) => state.events.detail);
+
+  useEffect(() => {
+    dispatch(fetchEventById(id));
+  }, [dispatch, id]);
+
+  const reload = useCallback(() => {
+    dispatch(fetchEventById(id));
+  }, [dispatch, id]);
+
+  return {
+    // Mientras carga otro evento, no se muestra el anterior.
+    event: item?.id === id ? item : null,
+    isLoading: status === "loading" || status === "idle",
+    errorMessage,
+    reload,
+  };
+}
+
+/**
+ * Hook fachada para crear, editar y eliminar eventos. Cada función devuelve si
+ * salió bien, así la pantalla decide si navega o muestra el error.
+ */
+export function useEventMutations() {
+  const dispatch = useAppDispatch();
+  const { isSaving, errorMessage } = useAppSelector((state) => state.events.mutation);
+
+  const createEvent = useCallback(
+    async (values: EventFormValues): Promise<EventViewModel | null> => {
+      const result = await dispatch(createEventMutation(values));
+      return createEventMutation.fulfilled.match(result) ? result.payload : null;
+    },
+    [dispatch],
+  );
+
+  const updateEvent = useCallback(
+    async (id: string, values: EventFormValues): Promise<boolean> => {
+      const result = await dispatch(updateEventMutation({ id, values }));
+      return updateEventMutation.fulfilled.match(result);
+    },
+    [dispatch],
+  );
+
+  const deleteEvent = useCallback(
+    async (id: string): Promise<boolean> => {
+      const result = await dispatch(deleteEventMutation(id));
+      return deleteEventMutation.fulfilled.match(result);
+    },
+    [dispatch],
+  );
+
+  const clearError = useCallback(() => {
+    dispatch(clearMutationError());
+  }, [dispatch]);
+
+  return { createEvent, updateEvent, deleteEvent, isSaving, errorMessage, clearError };
+}
