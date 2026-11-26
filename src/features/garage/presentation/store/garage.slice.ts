@@ -1,13 +1,13 @@
 import { createAsyncThunk, createSlice, isAnyOf } from "@reduxjs/toolkit";
-import type { GarageList, GarageDetail, Mutation, Removal } from "../../domain/entities/garage";
+import type { GarageListViewModel, GarageDetailViewModel, Mutation, Removal } from "../viewmodels/garage.viewmodel";
 import { listGarageAction, detailGarageAction, saveGarageAction, removeGarageAction } from "../actions/garage.actions";
 export const loadGarage = createAsyncThunk("garage/list", async (_: void, a) => { const r = await listGarageAction(); return r.ok ? r.data : a.rejectWithValue(r.message); });
 export const loadDetail = createAsyncThunk("garage/detail", async (id: string, a) => { const r = await detailGarageAction(id); return r.ok ? r.data : a.rejectWithValue(r.message); });
 export const saveGarage = createAsyncThunk("garage/save", async (m: Mutation, a) => { const r = await saveGarageAction(m); return r.ok ? r.data : a.rejectWithValue(r.message); });
 export const removeGarage = createAsyncThunk("garage/remove", async (m: Removal, a) => { const r = await removeGarageAction(m); return r.ok ? r.data : a.rejectWithValue(r.message); });
 interface State {
-    list: GarageList | null;
-    detail: GarageDetail | null;
+    list: GarageListViewModel | null;
+    detail: GarageDetailViewModel | null;
     loading: boolean;
     saving: boolean;
     error: string | null;

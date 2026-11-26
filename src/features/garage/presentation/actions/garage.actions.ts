@@ -2,15 +2,15 @@
 import { requireSession } from "@/src/lib/dal";
 import { actionOk, toActionError } from "@/src/core/errors/action-result";
 import { garageContainer } from "../../di/garage.container";
-import type { Mutation, Removal } from "../../domain/entities/garage";
+import { toGarageListViewModel, toGarageDetailViewModel, type Mutation, type Removal } from "../viewmodels/garage.viewmodel";
 export async function listGarageAction() { await requireSession(); try {
-    return actionOk(await garageContainer.listVehicles.execute());
+    return actionOk(toGarageListViewModel(await garageContainer.listVehicles.execute()));
 }
 catch (e) {
     return toActionError(e);
 } }
 export async function detailGarageAction(id: string) { const session = await requireSession(); try {
-    return actionOk(await garageContainer.getVehicleDetail.execute(id, session.userId));
+    return actionOk(toGarageDetailViewModel(await garageContainer.getVehicleDetail.execute(id, session.userId)));
 }
 catch (e) {
     return toActionError(e);
