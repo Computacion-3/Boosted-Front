@@ -1,10 +1,11 @@
 import "server-only";
+import type { GarageDatasource } from "./garage-datasource.interface";
 import { apiClient } from "@/src/core/http/api-client";
 import type { Mutation, Removal } from "../../domain/entities/garage";
 import type { VehicleDto, ModificationDto, JournalDto, ExpensesDto } from "../dtos/garage.dto";
 const path = (id: string) => `/vehicles/${encodeURIComponent(id)}`;
 function resource(m: Mutation | Removal) { return m.kind === "vehicle" ? "/vehicles" : `${path(m.vehicleId)}/${m.kind === "modification" ? "modifications" : "build-journal"}`; }
-export class GarageRestDatasource {
+export class GarageRestDatasource implements GarageDatasource {
     mine() { return apiClient.get<VehicleDto[]>("/vehicles/me"); }
     publicVehicles() { return apiClient.get<VehicleDto[]>("/vehicles"); }
     vehicle(id: string) { return apiClient.get<VehicleDto>(path(id)); }
