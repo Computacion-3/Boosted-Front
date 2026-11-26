@@ -11,7 +11,7 @@ Consume la API de [Boosted](https://github.com/Computacion-3/Boosted) (NestJS + 
 | Backend desplegado (Render) | <https://boosted-api.onrender.com> |
 | Documentación Swagger del backend | <https://boosted-api.onrender.com/api> |
 | GraphQL del backend | <https://boosted-api.onrender.com/graphql> |
-| Frontend desplegado (Vercel) | Lo despliega el CI al integrar en `main` (issue #30); la URL se anota aquí cuando exista |
+| Frontend desplegado (Vercel) | <https://boosted-front.vercel.app> |
 | Repositorio del backend | <https://github.com/Computacion-3/Boosted> |
 
 > Render duerme el servicio cuando no tiene tráfico: la primera petición después de un rato puede tardar cerca de un minuto. Las siguientes responden en menos de medio segundo.
@@ -30,7 +30,7 @@ Consume la API de [Boosted](https://github.com/Computacion-3/Boosted) (NestJS + 
 
 ## Estado del proyecto
 
-Situación al 25 de noviembre de 2026.
+Situación al 26 de noviembre de 2026.
 
 ### Lo que funciona hoy
 
@@ -46,9 +46,6 @@ Situación al 25 de noviembre de 2026.
 
 ### Pendiente
 
-- **Despliegue del frontend en Vercel.** El flujo de integración continua ya está hecho (ver [Despliegue](#despliegue)) y despliega solo al hacer push a `main`. Falta la primera integración de `develop` en `main` y anotar aquí la URL resultante.
-- **Pruebas E2E del garaje.** La suite cubre autenticación, control de acceso, eventos, perfil y notificaciones (ver [Pruebas end-to-end](#pruebas-end-to-end)), pero no el garaje, que se verifica con `typecheck`, `lint`, `build` y pruebas manuales.
-- **Garaje frente a la arquitectura.** `npm run lint:clean` marca en `features/garage` 1 error y 9 avisos que no son los falsos positivos conocidos (un solo caso de uso con varios métodos, componentes que no usan viewmodels, un slice que guarda tipos del dominio). Funciona, pero está por alinear con las capas del resto del proyecto.
 - **Portada** (`/`): sigue siendo una pantalla provisional.
 
 ## Tecnologías
