@@ -1,6 +1,6 @@
 "use client";
 import { useState, type FormEvent } from "react";
-import type { Mutation, VehicleInput, ModificationInput, JournalInput, Modification } from "../../domain/entities/garage";
+import type { Mutation, VehicleInput, ModificationInput, JournalInput, ModificationViewModel } from "../viewmodels/garage.viewmodel";
 type Field = {
     key: string;
     label: string;
@@ -22,7 +22,7 @@ export function GarageForm({ kind, id, vehicleId, initial, mods = [], saving, on
     id?: string;
     vehicleId?: string;
     initial?: object;
-    mods?: Modification[];
+    mods?: ModificationViewModel[];
     saving: boolean;
     onSave: (m: Mutation) => Promise<boolean>;
     onCancel: () => void;

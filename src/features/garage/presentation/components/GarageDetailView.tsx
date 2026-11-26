@@ -4,10 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useGarage } from "../hooks/use-garage";
 import { GarageForm } from "./GarageForm";
-import type { Mutation, Removal } from "../../domain/entities/garage";
-const cop = (n: number) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
-const statuses = { planned: "Planeada", in_progress: "En progreso", installed: "Instalada", removed: "Retirada" };
-const types = { progress: "Avance", purchase: "Compra", problem: "Problema", goal: "Objetivo" };
+import { cop, statuses, types, type Mutation, type Removal } from "../viewmodels/garage.viewmodel";
 export function GarageDetailView({ id }: {
     id: string;
 }) { const g = useGarage(id); const router = useRouter(); const [editor, setEditor] = useState<{
