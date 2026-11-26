@@ -42,7 +42,7 @@ Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 + daisyUI 5 
 | `npm run typecheck:e2e` | Chequeo de tipos de `cypress/` (el `tsconfig.json` raíz la excluye) |
 | `npm run typecheck` | Chequeo de tipos. Corre antes `next typegen`: sin eso, en un clon limpio `tsc` falla con `Cannot find name 'LayoutProps'`, porque Next genera ese tipo en `.next/types` |
 
-`lint:clean` y `arch:inventory` viven en `.claude/skills/clean-arch-redux/scripts/`, una carpeta que **no se versiona** (ver «La skill»). Sin esa carpeta, esos dos scripts fallan.
+`lint:clean` y `arch:inventory` viven en `scripts/architecture/` y están versionados: funcionan sin la skill. El CI corre `npm run lint:clean -- --strict`, así que un aviso de arquitectura también hace fallar el pull request.
 
 ## Variables de entorno
 
@@ -89,7 +89,7 @@ src/
 
 Flechas permitidas: `presentation → domain`, `presentation/store → presentation/actions`, `presentation/actions → di`, `infrastructure → domain`, `di → domain + infrastructure`, `app → presentation`, `src/store → presentation/store`.
 
-> **Ojo con la skill:** `clean-arch-redux` viene de la semana 12, antes de las Server Actions de la semana 14. Ella espera que el slice importe `di/` directamente; en este proyecto el contenedor es `server-only`, así que el slice llama a una Server Action y esa llama al contenedor. Si `lint:clean` marca `presentation/actions` como violación, es el linter el que está desactualizado, no el código: avisa al equipo para ajustarlo.
+> **Ojo con la skill:** `clean-arch-redux` viene de la semana 12, antes de las Server Actions de la semana 14. Ella espera que el slice importe `di/` directamente; en este proyecto el contenedor es `server-only`, así que el slice llama a una Server Action y esa llama al contenedor. El linter versionado en `scripts/architecture/` ya acepta esa flecha cuando el archivo de `presentation/actions` tiene `"use server"`.
 
 ### Reglas que no se rompen
 
